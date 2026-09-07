@@ -9,10 +9,10 @@ import { COLORS, label } from "./data";
 import type { Topic, TopicPoint } from "./Topics";
 
 echarts.use([ScatterChart, DataZoomComponent, GridComponent, TooltipComponent, CanvasRenderer, LabelLayout]);
-const PALETTE = ["#5484c9", "#c47761", "#549b8d", "#8a74ba", "#c39644", "#58a0be", "#c16c8b", "#7e9556", "#7282a3", "#ab7950", "#b372b0", "#419ba1", "#6878cc", "#a28a4b", "#9c687b", "#758c72", "#ba875e", "#7584c1", "#6098aa", "#b76872", "#8e9670", "#a67ec1", "#5d8fcd", "#99915c", "#957360", "#5c9f84", "#c287a1", "#6f96b0"];
-export const topicColor = (id: number) => id < 0 ? "#a5adbb" : PALETTE[id % PALETTE.length];
+const PALETTE = ["#bd3945", "#c47761", "#549b8d", "#8a74ba", "#c39644", "#ac637b", "#c16c8b", "#7e9556", "#92837c", "#ab7950", "#b372b0", "#419ba1", "#93434c", "#a28a4b", "#9c687b", "#758c72", "#ba875e", "#a28b9b", "#6098aa", "#b76872", "#8e9670", "#a67ec1", "#c45c41", "#99915c", "#957360", "#5c9f84", "#c287a1", "#8d6d74"];
+export const topicColor = (id: number) => id < 0 ? "#aaa29f" : PALETTE[id % PALETTE.length];
 export type ColorBy = "topic" | "domain" | "quality" | "pii";
-const annotationColors: Record<string, string> = {excellent: "#306e9c", good: "#589b9a", adequate: "#a9ae6d", poor: "#ce9b59", unacceptable: "#bd687d", contains_pii: "#bb708a", no_pii: "#5c9b91", __missing__: "#b3bbc8"};
+const annotationColors: Record<string, string> = {excellent: "#426f5e", good: "#79a18e", adequate: "#b7aca0", poor: "#cc9857", unacceptable: "#bf3944", contains_pii: "#bf3944", no_pii: "#79a18e", __missing__: "#d7d2d0"};
 
 export default function TopicMap({points, topics, colorBy, onRecord}: {
   points: TopicPoint[]; topics: Topic[]; colorBy: ColorBy; onRecord: (id: number) => void;
@@ -30,7 +30,7 @@ export default function TopicMap({points, topics, colorBy, onRecord}: {
       const key = colorBy === "topic" ? String(p[3]) : colorBy === "domain" ? p[5] : (colorBy === "quality" ? p[6] : p[7]) || "__missing__";
       if (!result.has(key)) result.set(key, {
         name: colorBy === "topic" ? names.get(p[3]) || "No topic vector" : label(key),
-        color: colorBy === "topic" ? topicColor(p[3]) : colorBy === "domain" ? COLORS[key] || "#a5adbb" : annotationColors[key] || "#a5adbb", points: [],
+        color: colorBy === "topic" ? topicColor(p[3]) : colorBy === "domain" ? COLORS[key] || "#aaa29f" : annotationColors[key] || "#aaa29f", points: [],
       });
       result.get(key)!.points.push(p);
     }
@@ -63,7 +63,7 @@ export default function TopicMap({points, topics, colorBy, onRecord}: {
         {type: "inside", xAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true, preventDefaultMouseMove: true},
         {type: "inside", yAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true, preventDefaultMouseMove: true},
       ],
-      tooltip: {trigger: "item", confine: true, renderMode: "richText", backgroundColor: "#23344d", borderWidth: 0,
+      tooltip: {trigger: "item", confine: true, renderMode: "richText", backgroundColor: "#302728", borderWidth: 0,
         textStyle: {color: "#fff", fontFamily: "DM Sans, sans-serif", fontSize: 12}, padding: 14,
         formatter: (p: any) => {
           const record = p.data?.point as TopicPoint | undefined;
@@ -78,8 +78,8 @@ export default function TopicMap({points, topics, colorBy, onRecord}: {
           data: g.points.map(p => ({value: [p[1],p[2]], name: p[8], recordNo: p[0], point: p})),
         })),
         ...(labelsVisible && colorBy === "topic" ? [{type: "scatter", silent: true, symbolSize: 0, z: 4,
-          label: {show: true, formatter: "{b}", color: "#30435b", fontSize: 10, fontFamily: "DM Sans, sans-serif", fontWeight: 600,
-            backgroundColor: "rgba(255,255,255,.90)", borderColor: "#e1e6ee", borderWidth: 1, borderRadius: 4, padding: [5,7]},
+          label: {show: true, formatter: "{b}", color: "#4d4142", fontSize: 10, fontFamily: "DM Sans, sans-serif", fontWeight: 600,
+            backgroundColor: "rgba(255,255,255,.90)", borderColor: "#e8e1df", borderWidth: 1, borderRadius: 4, padding: [5,7]},
           labelLayout: {hideOverlap: true}, data: centers,
         }] : []),
       ],

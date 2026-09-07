@@ -1,6 +1,6 @@
 # Danish Dynaword explorer — MVP plan
 
-**Status:** Localhost version implemented and validated, including Turftopic. GitHub publication is now authorized. The selected deployment is GitHub Pages for the frontend and a Hugging Face CPU Basic Docker Space for the full-corpus API. The complete serving snapshot is uploaded and checksum-verified; public deployment verification is in progress.
+**Status:** [Public explorer deployed](https://v4ldesalnikov.github.io/scandinavian-dynaword-website/), including Turftopic, full-corpus browsing, and both search modes. GitHub Pages serves the frontend; a Hugging Face CPU Basic Docker Space serves the complete, checksum-verified corpus snapshot. Public API and browser checks have passed.
 
 ## Implementation decisions for the first review
 
@@ -31,7 +31,7 @@ Semantic search adds another entry point: describe a subject in Danish and read 
 
 - Start with **Danish Dynaword only**.
 - Leave the guided tour out of the first release.
-- Use one consistent visual style; leave user-adjustable aesthetics and colours for later.
+- Use the supplied Dynaword icon, capitalised “Dynaword” name, and a red-and-white visual style; leave user-adjustable aesthetics and colours for later.
 - Preserve the ability to inspect real rows and use the existing annotation layer.
 - Make visualisations interactive from the first release. Static PNGs or other chart images do not fulfil the MVP requirement.
 
@@ -183,7 +183,7 @@ Deliverable: an exploratory topic landscape linked to the original corpus, not a
 - [x] Check missing annotations, empty results, long texts, and combined filters.
 - [x] Verify the full chart-selection-to-record flow, individual clearing, reset, and rapid filter changes without stale results replacing the latest selection.
 - [x] Check the layout on desktop and mobile, keyboard access, and loading/error states.
-- [ ] Publish the agreed public version and document how to rebuild it from the pinned revision.
+- [x] Publish the agreed public version and document how to rebuild it from the pinned revision.
 
 Deliverable: a public explorer that can be reviewed against the acceptance criteria below.
 

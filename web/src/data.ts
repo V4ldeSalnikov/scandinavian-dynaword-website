@@ -131,18 +131,18 @@ export const label = (s: string) =>
         ? "No PII flagged"
         : s.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
 export const COLORS: Record<string, string> = {
-  Other: "#477cba",
-  Legal: "#7071c4",
-  News: "#45a1a6",
-  Books: "#cb9a53",
-  Conversation: "#8298bb",
-  "Social Media": "#ca7788",
-  Web: "#67a482",
-  Encyclopedic: "#538cd3",
-  Speeches: "#a184c2",
-  Medical: "#d58c68",
-  Readaloud: "#a7a356",
-  Dialect: "#92aab5",
+  Other: "#bd3945",
+  Legal: "#87536c",
+  News: "#588f88",
+  Books: "#c49a57",
+  Conversation: "#a58780",
+  "Social Media": "#cc8094",
+  Web: "#849b64",
+  Encyclopedic: "#a9593f",
+  Speeches: "#a68cba",
+  Medical: "#d49472",
+  Readaloud: "#a8a35d",
+  Dialect: "#92948f",
 };
 export const ANNOTATIONS: Record<string, string> = {
   content_quality: "Content quality",

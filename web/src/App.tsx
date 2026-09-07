@@ -42,19 +42,19 @@ import {
 const EMPTY: Filters = {};
 const fieldOrder = ["unacceptable", "poor", "adequate", "good", "excellent"];
 const qualityColors: Record<string, string> = {
-  unacceptable: "#c4727d",
-  poor: "#d6a067",
-  adequate: "#92a8c9",
-  good: "#648fc3",
-  excellent: "#3b6ba6",
-  __missing__: "#cfd6e1",
-  contains_pii: "#cc8794",
-  no_pii: "#6fa295",
+  unacceptable: "#bf3944",
+  poor: "#cc9857",
+  adequate: "#b7aca0",
+  good: "#79a18e",
+  excellent: "#426f5e",
+  __missing__: "#d7d2d0",
+  contains_pii: "#bf3944",
+  no_pii: "#79a18e",
 };
 const tooltip = {
   trigger: "item" as const,
   renderMode: "richText" as const,
-  backgroundColor: "#17263d",
+  backgroundColor: "#302728",
   borderWidth: 0,
   textStyle: { color: "#fff", fontFamily: "Inter, system-ui", fontSize: 12 },
   padding: 12,
@@ -62,8 +62,8 @@ const tooltip = {
 const axisStyle = {
   axisLine: { show: false },
   axisTick: { show: false },
-  axisLabel: { color: "#8190a5", fontFamily: "Inter, system-ui", fontSize: 11 },
-  splitLine: { lineStyle: { color: "#eef1f6", type: "dashed" as const } },
+  axisLabel: { color: "#827b7a", fontFamily: "Inter, system-ui", fontSize: 11 },
+  splitLine: { lineStyle: { color: "#f0eceb", type: "dashed" as const } },
 };
 
 function App() {
@@ -306,7 +306,7 @@ function App() {
         ),
         ...axisStyle,
         axisLabel: {
-          color: "#53637a",
+          color: "#605656",
           fontSize: 11,
           width: composition === "sources" ? 140 : 100,
           overflow: "truncate",
@@ -319,14 +319,14 @@ function App() {
           data: compositionData.map((d) => ({
             value: d[measure],
             itemStyle: {
-              color: COLORS[d.domain || d.name] || "#648fc3",
+              color: COLORS[d.domain || d.name] || "#c5565e",
               borderRadius: [0, 3, 3, 0],
             },
           })),
           label: {
             show: true,
             position: "right",
-            color: "#61718a",
+            color: "#746b6a",
             fontSize: 10,
             formatter: (p: any) => compact(p.value),
           },
@@ -373,7 +373,7 @@ function App() {
         data: annotationData.map((d) => d.name),
         ...axisStyle,
         axisLabel: {
-          color: "#53637a",
+          color: "#605656",
           fontSize: 11,
           width: 98,
           overflow: "truncate",
@@ -387,7 +387,7 @@ function App() {
           data: annotationData.map((d) => ({
             value: d.records,
             itemStyle: {
-              color: qualityColors[d.name] || "#819bbd",
+              color: qualityColors[d.name] || "#bf7176",
               borderRadius: [0, 3, 3, 0],
             },
           })),
@@ -395,7 +395,7 @@ function App() {
             show: true,
             position: "right",
             formatter: (p: any) => percent(p.value, totals?.records || 0),
-            color: "#6c7b91",
+            color: "#7a716f",
             fontSize: 10,
           },
           cursor: "pointer",
@@ -422,8 +422,8 @@ function App() {
         xAxisIndex: 0,
         brushMode: "single",
         brushStyle: {
-          color: "rgba(63,116,188,.12)",
-          borderColor: "#356cba",
+          color: "rgba(181,18,27,.12)",
+          borderColor: "#b5121b",
           borderWidth: 1,
         },
       },
@@ -447,8 +447,8 @@ function App() {
           type: "bar",
           data: stats?.histogram.map((b) => b.records),
           barCategoryGap: "18%",
-          itemStyle: { color: "#7599c8", borderRadius: [3, 3, 0, 0] },
-          emphasis: { itemStyle: { color: "#356cba" } },
+          itemStyle: { color: "#c5565e", borderRadius: [3, 3, 0, 0] },
+          emphasis: { itemStyle: { color: "#b5121b" } },
         },
       ],
     }),
@@ -467,12 +467,14 @@ function App() {
             reset();
           }}
         >
-          <span className="brand-mark">
-            <i />
-            <i />
-            <i />
-          </span>
-          dynaword
+          <img
+            className="brand-mark"
+            src={`${import.meta.env.BASE_URL}icon.png`}
+            alt=""
+            width="35"
+            height="36"
+          />
+          Dynaword
           <span className="brand-divider" />{" "}
           <span className="brand-sub">CORPUS EXPLORER</span>
         </a>

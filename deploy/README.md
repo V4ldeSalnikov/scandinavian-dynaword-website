@@ -1,7 +1,7 @@
 # GitHub Pages and the corpus API
 
 The source repository is [V4ldeSalnikov/scandinavian-dynaword-website](https://github.com/V4ldeSalnikov/scandinavian-dynaword-website).
-The intended Pages URL is `https://v4ldesalnikov.github.io/scandinavian-dynaword-website/`.
+The live site is [Dynaword](https://v4ldesalnikov.github.io/scandinavian-dynaword-website/). The API runs at [danish-dynaword-api](https://v4ldelund-danish-dynaword-api.hf.space/docs).
 
 Pages hosts the static React frontend. It cannot run FastAPI, DuckDB, Tantivy, or the semantic-vector searches. Public deployment therefore needs a separate HTTPS API host with the complete prepared indexes. A frontend without that host would not meet the full-corpus requirement.
 
@@ -51,6 +51,10 @@ Run **Actions → Validate and deploy GitHub Pages → Run workflow**, or push t
 
 The frontend uses relative asset paths, so it works under the repository subdirectory. Its data requests use the separately configured API origin. The local Vite proxy continues to work when the variable is unset.
 
-## Verification limits
+## Public verification
 
-The workflow builds the API container and checks startup against an empty read-only data mount. The complete corpus and HTTPS configuration still need verification on the selected host; this Mac workspace has no Docker daemon. Backend tests and a frontend build do not prove public deployment. Confirm the GitHub deployment succeeded and visit the public URL after API provisioning.
+The GitHub deployment succeeded, and the public API was checked against all 7,399,685 records, all 50 sources, the final corpus page, full-text search, full-vector semantic retrieval, topic filters, original-text reading, and browser access from the Pages origin. Browser checks cover desktop/mobile layouts, linked filters, chart selection, both searches, map controls, and point-to-reader access.
+
+Initial single-client checks on the running Space measured about 0.8 seconds for a full-text query, 13.3 seconds for an uncached full-corpus semantic query, and 2.8 seconds for the topic map and distribution. These are observations, not a load-test guarantee. CPU Basic can sleep after inactivity; the first container startup took several minutes with the roughly 30 GB serving image. A real sleep/wake cycle has not been measured. The frontend retries while the API is starting.
+
+The workflow also builds the API container and checks startup against an empty read-only data mount before publication.
