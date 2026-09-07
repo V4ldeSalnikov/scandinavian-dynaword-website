@@ -1,0 +1,81 @@
+name: Validate and deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            server/requirements.txt
+            server/requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          npm --prefix web ci
+          python -m pip install -r server/requirements-dev.txt
+      - name: Test API behavior on isolated fixtures
+        run: python -m unittest discover -s server -v
+      - name: Build the API container
+        run: docker build --tag dynaword-api:ci .
+      - name: Check API startup with a read-only data mount
+        run: |
+          mkdir -p "$RUNNER_TEMP/dynaword-data/texts"
+          trap 'docker rm -f dynaword-api-smoke' EXIT
+          docker run -d --name dynaword-api-smoke -p 127.0.0.1:18000:8000 -v "$RUNNER_TEMP/dynaword-data:/app/.cache:ro" dynaword-api:ci
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:18000/api/health
+      - name: Build the static frontend
+        run: npm --prefix web run build
+      - name: Verify the public full-corpus API
+        if: github.event_name != 'pull_request' && env.VITE_API_BASE_URL != ''
+        env:
+          PAGES_ORIGIN: https://${{ github.repository_owner }}.github.io
+        run: python scripts/check_public_api.py
+      - name: Explain pending API configuration
+        if: env.VITE_API_BASE_URL == ''
+        run: |
+          echo '### Public API required before publishing' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The source and frontend build are ready. GitHub Pages cannot run the corpus API. Set the repository variable `VITE_API_BASE_URL` to the HTTPS API origin, then run this workflow again. See `deploy/README.md`.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload Pages build
+        if: github.event_name != 'pull_request' && env.VITE_API_BASE_URL != ''
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: web/dist
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.VITE_API_BASE_URL != ''
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

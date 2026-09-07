@@ -1,0 +1,11 @@
+.cache/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+.venv/
+.venv-topics/
+web/node_modules/
+web/dist/
+.DS_Store

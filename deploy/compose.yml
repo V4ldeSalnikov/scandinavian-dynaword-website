@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ALLOWED_ORIGINS: ${PAGES_ORIGIN:-https://v4ldesalnikov.github.io}
+    volumes:
+      - type: bind
+        source: ${DYNAWORD_DATA_DIR:?Set DYNAWORD_DATA_DIR to the prepared corpus directory}
+        target: /app/.cache
+        read_only: true
+    expose:
+      - '8000'
+    mem_limit: 12g
+
+  https:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN to the public API hostname}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
