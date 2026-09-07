@@ -111,7 +111,7 @@ function App() {
     const controller = new AbortController();
     let interval: ReturnType<typeof setTimeout>;
     const load = () =>
-      api<Manifest>("manifest", {}, controller.signal)
+      api<Manifest>("manifest", {}, AbortSignal.any([controller.signal, AbortSignal.timeout(20000)]))
         .then((m) => {
           setManifest(m);
           setInitialError("");
@@ -119,7 +119,10 @@ function App() {
             interval = setTimeout(load, 8000);
         })
         .catch((e) => {
-          if (e.name !== "AbortError") setInitialError(e.message);
+          if (e.name !== "AbortError") {
+            setInitialError(e.message);
+            interval = setTimeout(load, 8000);
+          }
         });
     load();
     return () => {
@@ -705,10 +708,13 @@ function App() {
           {!manifest || manifest.status !== "ready" ? (
             <div className="preparing">
               {initialError ? <CircleHelp size={28} /> : <LoaderCircle className="spin" size={28} />}
-              <h2>{initialError ? "The data service is unavailable" : "Preparing the complete corpus"}</h2>
+              <h2>{initialError ? "Waiting for the data service" : manifest ? "Preparing the complete corpus" : "Connecting to the corpus"}</h2>
               <p>
-                {initialError ||
-                  `${manifest?.sources.length || 0} of 50 sources indexed. The explorer will appear when all records are ready.`}
+                {initialError
+                  ? "The backend may be waking after inactivity or temporarily unavailable. We’ll retry automatically every few seconds."
+                  : manifest
+                    ? `${manifest.sources.length} of 50 sources indexed. The explorer will appear when all records are ready.`
+                    : "Loading the complete Danish dataset. The first connection can take longer after inactivity."}
               </p>
               <button
                 className="button"

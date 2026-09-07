@@ -5,7 +5,14 @@ The intended Pages URL is `https://v4ldesalnikov.github.io/scandinavian-dynaword
 
 Pages hosts the static React frontend. It cannot run FastAPI, DuckDB, Tantivy, or the semantic-vector searches. Public deployment therefore needs a separate HTTPS API host with the complete prepared indexes. A frontend without that host would not meet the full-corpus requirement.
 
-## API server
+## Hugging Face backend
+
+The selected deployment uses a CPU Basic Docker Space for the API and GitHub
+Pages for the frontend. See [Hugging Face deployment](huggingface/README.md) for
+the pinned artifact repository, image build, hardware limits and update steps.
+The following Compose setup remains an alternative for a persistent Linux server.
+
+## Alternative API server
 
 Use a Linux server with persistent SSD storage, Docker Compose, a public hostname, and ports 80/443 available. A practical starting allocation for the current implementation is 4 CPU cores, 16 GB RAM, and at least 50 GB free storage; measure real traffic before choosing a long-term allocation. The complete local cache is approximately 30 GB. This repository does not provision or purchase a server.
 

@@ -1,6 +1,6 @@
 # Danish Dynaword explorer — MVP plan
 
-**Status:** Localhost version implemented and validated, including Turftopic. GitHub publication is now authorized. Pages automation and API server configuration are prepared; a public HTTPS API host is required to make the complete explorer available online.
+**Status:** Localhost version implemented and validated, including Turftopic. GitHub publication is now authorized. The selected deployment is GitHub Pages for the frontend and a Hugging Face CPU Basic Docker Space for the full-corpus API. The complete serving snapshot is uploaded and checksum-verified; public deployment verification is in progress.
 
 ## Implementation decisions for the first review
 

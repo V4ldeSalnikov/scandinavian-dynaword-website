@@ -33,6 +33,11 @@ def manifest():
     return json.loads(p.read_text()) if p.exists() else {'status': 'preparing', 'sources': []}
 
 
+@app.get('/')
+def service_info():
+    return {'service': 'Danish Dynaword API', 'website': 'https://v4ldesalnikov.github.io/scandinavian-dynaword-website/', 'docs': '/docs', 'health': '/api/health'}
+
+
 @contextmanager
 def database():
     if manifest()['status'] != 'ready' or not (CACHE / 'corpus.duckdb').exists():

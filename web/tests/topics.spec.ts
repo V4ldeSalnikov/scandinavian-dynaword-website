@@ -3,7 +3,7 @@ import {test, expect} from "@playwright/test";
 test("topic map links full-corpus filters, both searches, and original records", async ({page}) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.goto("/#topics");
+  await page.goto("./#topics");
   await expect(page.getByRole("heading", {name:"A landscape of Danish."})).toBeVisible();
   await expect(page.locator(".topics-view")).toHaveAttribute("aria-busy","false");
   await expect(page.locator(".topic-map")).toHaveAttribute("aria-label", /21396 sampled records/);
@@ -49,28 +49,35 @@ test("topic map links full-corpus filters, both searches, and original records",
 });
 
 test("canvas point interaction, mobile map, and unassigned coverage", async ({page}) => {
-  await page.goto("/#topics");
+  await page.goto("./#topics");
   await expect(page.locator(".topics-view")).toHaveAttribute("aria-busy","false");
   await page.getByLabel("Map colour by").selectOption("domain");
-  // Resolve a real rendered point to pixels, then click the canvas (not an
-  // ECharts synthetic event). This verifies the full hit-testing/reader path.
+  // Locate a real painted dot so this hit test works in development and in
+  // the bundled Pages build, without importing development-only modules.
   const point = await page.evaluate(async () => {
-    const url = performance.getEntriesByType("resource").map(r => r.name).find(u => u.includes("/echarts_core.js"))!;
-    const echarts = await import(url);
-    const element = document.querySelector(".topic-map")!;
-    const instance = echarts.getInstanceByDom(element);
-    const series = instance.getOption().series;
-    // Pick the leftmost dot to avoid overlap in the dense centre of the map.
-    let candidate: any = null;
-    series.forEach((s: any, i: number) => s.data?.forEach((d: any) => {
-      if (d.recordNo !== undefined && (!candidate || d.value[0] < candidate.data.value[0])) candidate = {data:d,index:i};
-    }));
-    const position = instance.convertToPixel({seriesIndex:candidate.index},candidate.data.value);
-    return {x:position[0],y:position[1],id:candidate.data.recordNo};
+    await new Promise(requestAnimationFrame);
+    for (const canvas of document.querySelectorAll<HTMLCanvasElement>(".topic-map canvas")) {
+      const {width, height} = canvas;
+      const pixels = canvas.getContext("2d")!.getImageData(0, 0, width, height).data;
+      const painted = (x: number, y: number) => {
+        const i = (y * width + x) * 4;
+        return pixels[i + 3] > 140 && Math.max(pixels[i], pixels[i+1], pixels[i+2]) - Math.min(pixels[i], pixels[i+1], pixels[i+2]) > 30;
+      };
+      for (let x = 0; x < width; x++) for (let y = 0; y < height; y++) {
+        if (!painted(x, y)) continue;
+        let sx = 0, sy = 0, n = 0;
+        for (let dx = x; dx < Math.min(x+5, width); dx++) for (let dy = Math.max(0,y-4); dy < Math.min(y+5,height); dy++) {
+          if (painted(dx, dy)) { sx += dx+.5; sy += dy+.5; n++; }
+        }
+        const bounds = canvas.getBoundingClientRect();
+        return {x: sx/n/width*bounds.width, y: sy/n/height*bounds.height};
+      }
+    }
+    throw new Error("The map has no painted points");
   });
-  await page.locator(".topic-map").scrollIntoViewIfNeeded();
-  const request = page.waitForResponse(r => new URL(r.url()).pathname === `/api/record/${point.id}` && r.status() === 200);
-  const bounds = await page.locator(".topic-map").boundingBox();
+  await page.locator(".topic-map canvas").first().scrollIntoViewIfNeeded();
+  const request = page.waitForResponse(r => /^\/api\/record\/\d+$/.test(new URL(r.url()).pathname) && r.status() === 200);
+  const bounds = await page.locator(".topic-map canvas").first().boundingBox();
   await page.mouse.click(bounds!.x+point.x, bounds!.y+point.y);
   await request;
   await expect(page.locator(".reader-text")).not.toBeEmpty();

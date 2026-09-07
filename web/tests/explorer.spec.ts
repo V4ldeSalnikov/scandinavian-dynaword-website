@@ -5,7 +5,7 @@ test("complete corpus, linked filters, annotations, and reader", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Complete Danish corpus", { exact: true }),
   ).toBeVisible();
@@ -71,7 +71,7 @@ test("complete corpus, linked filters, annotations, and reader", async ({
 });
 
 test("full-text search, pagination, and source documents", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Complete Danish corpus", { exact: true }),
   ).toBeVisible();
@@ -96,7 +96,7 @@ test("full-text search, pagination, and source documents", async ({ page }) => {
 
 test("mobile layout and filter access", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("./");
   await expect(
     page.getByText("Complete Danish corpus", { exact: true }),
   ).toBeVisible();
@@ -127,7 +127,7 @@ test("mobile layout and filter access", async ({ page }) => {
 test("chart clicks, brush ranges, and keyboard-readable values", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
   const composition = page.locator('.composition [role="img"]');
   const box = await composition.boundingBox();
@@ -162,7 +162,7 @@ test("chart clicks, brush ranges, and keyboard-readable values", async ({
 test("semantic search ranks the corpus slice and retains original-text access", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("./");
   await expect(page.getByLabel("Search mode")).toHaveValue("semantic");
   await page
     .getByLabel("Search the complete corpus")

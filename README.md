@@ -118,8 +118,8 @@ The frontend builds to `web/dist/` with relative asset paths:
 VITE_API_BASE_URL=https://your-data-service.example npm --prefix web run build
 ```
 
-The repository includes a GitHub Actions workflow to test, build, and publish that directory. The API, DuckDB database, full-text index, and vector files need a separate host with persistent storage. The workflow checks the public service and CORS before publication; deployment is skipped while the repository variable `VITE_API_BASE_URL` is unset.
+The repository includes a GitHub Actions workflow to test, build, and publish that directory. The API, DuckDB database, full-text index, and vector files run separately in a Hugging Face Docker Space. Its image contains a checksum-verified, pinned serving snapshot. The workflow checks the public service and CORS before publication; deployment is skipped while the repository variable `VITE_API_BASE_URL` is unset.
 
-See [deployment instructions](deploy/README.md) for the Docker/Caddy API configuration and Pages setup. The intended public URL is `https://v4ldesalnikov.github.io/scandinavian-dynaword-website/`. Preparing these files does not itself mean the public site is live.
+See [Hugging Face backend instructions](deploy/huggingface/README.md) for CPU Basic hosting, artifact uploads and updates, or [deployment instructions](deploy/README.md) for the alternative Docker/Caddy server and Pages setup. The intended public URL is `https://v4ldesalnikov.github.io/scandinavian-dynaword-website/`. Preparing these files does not itself mean the public site is live.
 
 See [MVP.md](MVP.md) and [WISHLIST.md](WISHLIST.md) for the plan and future ideas.
