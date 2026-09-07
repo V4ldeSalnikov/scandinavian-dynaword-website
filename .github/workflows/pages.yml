@@ -43,9 +43,13 @@ jobs:
       - name: Check API startup with a read-only data mount
         run: |
           mkdir -p "$RUNNER_TEMP/dynaword-data/texts"
-          trap 'docker rm -f dynaword-api-smoke' EXIT
+          cleanup() {
+            docker logs dynaword-api-smoke
+            docker rm -f dynaword-api-smoke
+          }
+          trap cleanup EXIT
           docker run -d --name dynaword-api-smoke -p 127.0.0.1:18000:8000 -v "$RUNNER_TEMP/dynaword-data:/app/.cache:ro" dynaword-api:ci
-          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:18000/api/health
+          curl --fail --retry 10 --retry-all-errors --retry-delay 1 --retry-max-time 45 --max-time 10 http://127.0.0.1:18000/api/health
       - name: Build the static frontend
         run: npm --prefix web run build
       - name: Verify the public full-corpus API
