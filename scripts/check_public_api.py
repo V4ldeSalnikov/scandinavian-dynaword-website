@@ -1,6 +1,9 @@
 """Refuse a Pages deployment unless its real, complete data service is ready."""
 import os
-from urllib.parse import urlparse
+import json
+import time
+from pathlib import Path
+from urllib.parse import urlparse, urlencode
 
 import requests
 
@@ -35,11 +38,31 @@ def check_public_api(api_url, pages_origin):
         stats = get('stats')
         if stats['totals']['records'] != records or stats['totals']['sources'] != len(manifest['sources']):
             raise ValueError('Public corpus totals do not match the manifest.')
-    print(f"Public API ready: {records:,} records, {len(manifest['sources'])} sources, both search modes.")
+        catalog=json.loads((Path(__file__).resolve().parents[1]/'web/public/data/corpora.json').read_text())
+        for corpus in catalog['datasets']:
+            if corpus['id']=='danish':continue
+            path='corpora/'+corpus['id']+'/rows?'
+            page=get(path+urlencode({'limit':1}))
+            if page.get('total')!=corpus['records'] or len(page.get('rows',[]))!=1:
+                raise ValueError('The '+corpus['id']+' explorer does not cover the complete release.')
+            if corpus['annotation_distributions']:
+                page=get(path+urlencode({'limit':1,'filters':json.dumps({'annotations':{'educational_value':'high'}})}))
+                if page.get('total')!=corpus['annotation_distributions']['educational_value']['high'] or len(page.get('rows',[]))!=1:
+                    raise ValueError('The '+corpus['id']+' annotation index is not ready.')
+    print(f"Public API ready: all five explorers; Danish {records:,} records, {len(manifest['sources'])} sources, both search modes.")
 
 
 if __name__ == '__main__':
-    try:
-        check_public_api(os.environ.get('VITE_API_BASE_URL', ''), os.environ.get('PAGES_ORIGIN', 'https://v4ldesalnikov.github.io'))
-    except (ValueError, KeyError, requests.RequestException) as error:
-        raise SystemExit(f'Pages deployment stopped: {error}')
+    deadline=time.monotonic()+int(os.environ.get('PUBLIC_API_WAIT_SECONDS','0'))
+    waiting=False
+    while True:
+        try:
+            check_public_api(os.environ.get('VITE_API_BASE_URL', ''), os.environ.get('PAGES_ORIGIN', 'https://v4ldesalnikov.github.io'))
+            break
+        except requests.RequestException as error:
+            if time.monotonic()>=deadline:
+                raise SystemExit(f'Pages deployment stopped: {error}')
+            if not waiting:print('Waiting for the updated language API before publishing Pages…',flush=True);waiting=True
+            time.sleep(20)
+        except (ValueError, KeyError) as error:
+            raise SystemExit(f'Pages deployment stopped: {error}')
