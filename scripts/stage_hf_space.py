@@ -13,7 +13,7 @@ def stage(output):
     if not re.fullmatch(r'[0-9a-f]{40}', source['revision']):
         raise ValueError('Pin the completely uploaded artifact repository first.')
     output.mkdir(parents=True, exist_ok=True)
-    for filename, target in [('Dockerfile', 'Dockerfile'), ('SPACE.md', 'README.md'), ('runtime-source.json', 'runtime-source.json')]:
+    for filename, target in [('Dockerfile', 'Dockerfile'), ('SPACE.md', 'README.md'), ('runtime-source.json', 'runtime-source.json'), ('annotations-source.json', 'annotations-source.json')]:
         shutil.copyfile(config / filename, output / target)
     (output / 'server').mkdir(exist_ok=True)
     for path in (root / 'server').glob('*.py'):
@@ -22,6 +22,8 @@ def stage(output):
     shutil.copyfile(root / 'server/requirements.txt', output / 'server/requirements.txt')
     (output / 'scripts').mkdir(exist_ok=True)
     shutil.copyfile(root / 'scripts/restore_runtime.py', output / 'scripts/restore_runtime.py')
+    shutil.copyfile(root / 'scripts/restore_annotations.py', output / 'scripts/restore_annotations.py')
+    shutil.copyfile(root / 'web/public/data/corpora.json', output / 'corpora.json')
     print(f'Space staged at {output}; artifacts: {source["repo"]}@{source["revision"]}')
 
 

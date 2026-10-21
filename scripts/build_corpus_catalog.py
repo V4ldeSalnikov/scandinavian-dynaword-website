@@ -82,6 +82,16 @@ def annotation_count(stats: dict) -> int | None:
     return value
 
 
+def annotation_distributions(stats: dict) -> dict[str, dict[str, int]] | None:
+    fields = (stats.get("annotations") or {}).get("property_level_counts")
+    if not fields:
+        return None
+    for name, counts in fields.items():
+        if any(type(v) is not int or v < 0 for v in counts.values()) or sum(counts.values()) > read_count(stats, "number_of_samples"):
+            raise ValueError(f"Invalid published counts for {name}")
+    return fields
+
+
 def quality_counts(stats: dict) -> dict[str, int] | None:
     values = (stats.get("annotations") or {}).get("property_level_counts", {}).get("content_quality")
     if values is None:
@@ -144,6 +154,7 @@ def build_dataset(snapshot: tuple, cache: Path, workers: int) -> dict:
             "tokens": read_count(stats, "number_of_tokens"),
             "annotated": annotation_count(stats),
             "quality": quality_counts(stats),
+            "annotation_distributions": annotation_distributions(stats),
             "url": f"{base}/blob/{revision}/data/{source}/{source}.md",
             "stats_url": f"{base}/resolve/{revision}/{stats_path}",
         }
@@ -225,6 +236,7 @@ def build_dataset(snapshot: tuple, cache: Path, workers: int) -> dict:
         "tokens": tokens,
         "annotated": annotated,
         "quality": quality_counts(root_stats),
+        "annotation_distributions": annotation_distributions(root_stats),
         "sources": sources,
         "domains": domains,
         "stats_url": f"{base}/resolve/{revision}/descriptive_stats.json",

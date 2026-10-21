@@ -25,6 +25,8 @@ class CorpusTests(unittest.TestCase):
             (2,'c','books','Books',1000,'2025-01-01','1900-01-01, 1900-12-31',0,None,None,None,None,'books'),
             (3,'d','books','Books',100,'2025-01-01','1900-01-01, 1900-12-31',1,'delta','good','no_pii',['creative','creative'],'books'),
         ])
+        c.execute('ALTER TABLE records ADD COLUMN educational_value VARCHAR')
+        c.execute("UPDATE records SET educational_value=CASE WHEN id IN ('a','c') THEN 'high' ELSE 'none' END")
         c.close()
         self.client=TestClient(module.app)
 
@@ -47,6 +49,12 @@ class CorpusTests(unittest.TestCase):
         self.assertEqual(stats['totals']['records'],1)
         self.assertEqual(stats['totals']['tokens'],10)
         self.assertEqual([r['id'] for r in rows['rows']],['a'])
+
+    def test_multiple_annotation_fields_intersect_with_multilabel_content(self):
+        response=self.client.get('/api/rows',params={'filters':json.dumps({'educational_value':'high','content_quality':'good','content_type':'opinion'})}).json()
+        self.assertEqual([row['id'] for row in response['rows']],['a'])
+        empty=self.client.get('/api/rows',params={'filters':json.dumps({'educational_value':'none','content_type':'opinion'})}).json()
+        self.assertEqual(empty['rows'],[])
 
     def test_missing_is_not_negative(self):
         missing=self.client.get('/api/rows',params={'filters':json.dumps({'pii_presence':'__missing__'})}).json()

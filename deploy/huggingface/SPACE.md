@@ -1,5 +1,5 @@
 ---
-title: Danish Dynaword API
+title: Scandinavian Dynaword API
 emoji: 📚
 colorFrom: red
 colorTo: red
@@ -10,13 +10,17 @@ startup_duration_timeout: 1h
 short_description: Full-corpus search API for the Dynaword explorer
 datasets:
   - danish-foundation-models/danish-dynaword
+  - danish-foundation-models/norwegian-dynaword
+  - danish-foundation-models/swedish-dynaword
+  - danish-foundation-models/icelandic-dynaword
+  - danish-foundation-models/faroese-dynaword
   - V4ldeLund/danish-dynaword-explorer-index
 tags:
   - dynaword
   - fastapi
 ---
 
-# Danish Dynaword API
+# Scandinavian Dynaword API
 
 The interactive website is on **[GitHub Pages](https://v4ldesalnikov.github.io/scandinavian-dynaword-website/)**.
 This Docker Space only serves its data API. [API documentation](/docs).
@@ -24,12 +28,12 @@ This Docker Space only serves its data API. [API documentation](/docs).
 The API covers all 7,399,685 Danish Dynaword records: paginated browsing,
 BM25 text search, Danish fastText semantic search with filtered Faiss retrieval,
 and annotation filters. The website compares all five Scandinavian corpora
-using published release statistics; full record search covers Danish v1.2.23.
+using published release statistics. Complete record browsing also covers Norwegian, Swedish, Icelandic and Faroese. Norwegian, Icelandic and Faroese have local annotation/length indexes; Swedish has no published annotation layer. Text and semantic search cover Danish v1.2.23.
 Topics are deferred from the current website.
 
 Source, reproduction instructions and deployment files:
 https://github.com/V4ldeSalnikov/scandinavian-dynaword-website.
-`runtime-source.json` pins the serving artifacts to an immutable Hub commit.
+`runtime-source.json` and `annotations-source.json` pin the serving artifacts to an immutable Hub commit.
 Checksums are verified while building the image. Original texts retain their
 source licenses; derived fastText vectors use CC BY-SA 3.0. See the index
 repository card and `manifest.json` for attribution and source-specific terms.

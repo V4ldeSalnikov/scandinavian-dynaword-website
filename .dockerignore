@@ -6,6 +6,11 @@
 **/*.pyc
 **/.env
 **/.env.*
-web
+web/*
+!web/public
+web/public/*
+!web/public/data
+web/public/data/*
+!web/public/data/corpora.json
 deploy
 *.md

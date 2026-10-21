@@ -15,6 +15,10 @@ USER dynaword
 # rerun preparation or fetch all individual artifacts into temporary storage.
 RUN python scripts/restore_runtime.py --source runtime-source.json --destination .cache
 
+COPY scripts/restore_annotations.py /app/scripts/restore_annotations.py
+COPY annotations-source.json /app/annotations-source.json
+RUN python scripts/restore_annotations.py --source annotations-source.json
+COPY --chown=dynaword:dynaword corpora.json /app/corpora.json
 COPY --chown=dynaword:dynaword server /app/server
 EXPOSE 8000
 CMD ["python", "-m", "uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

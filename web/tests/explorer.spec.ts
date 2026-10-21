@@ -18,7 +18,8 @@ test("complete corpus, linked filters, annotations, and reader", async ({
   await page.locator("#domain").selectOption("News");
   await expect(page.locator(".filter-chips")).toContainText("News");
   await expect(page.locator(".record-title").first()).toBeVisible();
-  await page.locator("#pii").selectOption("contains_pii");
+  await page.getByLabel("Annotation field", {exact:true}).selectOption("pii_presence");
+  await page.getByLabel("Annotation value", {exact:true}).selectOption("contains_pii");
   await expect(page.locator(".record-title").first()).toBeVisible();
   await expect(page.locator(".record-table tbody tr").first()).toContainText(
     "Flagged",
@@ -92,7 +93,7 @@ test("mobile layout and filter access", async ({ page }) => {
   await expect(page.locator(".record-title").first()).toBeVisible();
   await page.getByRole("button", { name: "Open filters", exact: true }).click();
   await expect(page.locator(".sidebar")).toBeVisible();
-  await page.locator("#quality").selectOption("good");
+  await page.getByLabel("Annotation value", {exact:true}).selectOption("good");
   await page
     .getByRole("button", { name: "Close filters", exact: true })
     .click();

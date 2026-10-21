@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 import unittest
-from scripts.build_corpus_catalog import quality_counts, source_domains
+from scripts.build_corpus_catalog import quality_counts, source_domains, annotation_distributions
 
 class CorpusCatalogTests(unittest.TestCase):
     def test_unreported_quality_is_not_zero_quality(self):
@@ -27,3 +27,14 @@ class CorpusCatalogTests(unittest.TestCase):
                 self.assertIn(corpus['revision'],source['url'])
                 if source['quality'] is not None:
                     self.assertLessEqual(sum(source['quality'].values()),source['records'])
+
+    def test_all_annotation_distributions_match_source_sums(self):
+        catalog=json.loads((Path(__file__).resolve().parents[1]/'web/public/data/corpora.json').read_text())
+        for corpus in catalog['datasets']:
+            for field,expected in (corpus['annotation_distributions'] or {}).items():
+                totals={}
+                for source in corpus['sources']:
+                    for value,n in (source['annotation_distributions'] or {}).get(field,{}).items():totals[value]=totals.get(value,0)+n
+                self.assertEqual(totals,expected,(corpus['id'],field))
+        with self.assertRaises(ValueError):
+            annotation_distributions({'number_of_samples':1,'annotations':{'property_level_counts':{'educational_value':{'high':2}}}})

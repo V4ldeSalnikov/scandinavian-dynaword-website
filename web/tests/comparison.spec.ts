@@ -83,12 +83,24 @@ test('quality graph compares labels and responds to the selected domain',async({
   await graph.getByRole('button',{name:'Good',exact:true}).click();
   await expect(graph.locator('.bar-total').first()).toHaveText('37.5%');
   await expect(graph.locator('.comparison-bar-row').filter({hasText:'Swedish'}).locator('.bar-total')).toHaveText('—');
-  await page.getByLabel('Quality comparison scale').selectOption('count');
+  await page.getByLabel('Annotation comparison scale').selectOption('count');
   await expect(graph.locator('.bar-total').first()).toHaveText('2.78M');
   await page.getByLabel('Compare domain').selectOption('Medical');
   await expect(graph.locator('.bar-total').first()).not.toHaveText('2.78M');
-  await graph.getByRole('button',{name:'Show all quality levels'}).click();
+  await graph.getByRole('button',{name:'Show all categories'}).click();
   await graph.getByRole('button',{name:/Danish, Good:/}).click();
   await expect(graph.locator('.chart-readout')).toContainText('Danish · Good');
   await expect(page.locator('.coverage-section')).toHaveCount(0);
+});
+
+test('annotation field selection changes the graph and category filters',async({page})=>{
+  await page.goto('./#compare');
+  await page.getByLabel('Comparison annotation').selectOption('pii_presence');
+  const graph=page.locator('.quality-comparison');
+  await graph.getByRole('button',{name:'PII flagged',exact:true}).click();
+  await expect(graph.locator('.bar-total').first()).not.toHaveText('100%');
+  await page.getByLabel('Comparison annotation').selectOption('educational_value');
+  await expect(graph.getByRole('button',{name:'PII flagged',exact:true})).toHaveCount(0);
+  await expect(graph.getByRole('button',{name:'Show all categories'})).toHaveCount(0);
+  await expect(page.getByText('These quality levels are machine predictions, not human judgements.',{exact:false})).toHaveCount(0);
 });

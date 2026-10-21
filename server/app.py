@@ -14,13 +14,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import requests
 from server import text_search, semantic_search, topics
+from server.remote_corpora import router as corpora_router
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / '.cache'
 DATASET = 'danish-foundation-models/danish-dynaword'
-FIELDS = ['content_quality', 'pii_presence', 'content_type', 'information_density', 'educational_value', 'content_safety', 'content_integrity', 'reasoning_indicators']
+FIELDS = ['content_quality', 'pii_presence', 'content_type', 'information_density', 'educational_value', 'content_safety', 'content_integrity', 'reasoning_indicators', 'content_ratio', 'content_length']
 LENGTH_BOUNDS = [0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432]
-app = FastAPI(title='Danish Dynaword explorer', version='0.1.0')
+app = FastAPI(title='Dynaword explorer', version='0.2.0')
+app.include_router(corpora_router)
 app.add_middleware(CORSMiddleware, allow_origins=[x for x in os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',') if x], allow_methods=['GET'], allow_headers=['*'])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 pool = ThreadPoolExecutor(max_workers=5)
@@ -35,7 +37,7 @@ def manifest():
 
 @app.get('/')
 def service_info():
-    return {'service': 'Danish Dynaword API', 'website': 'https://v4ldesalnikov.github.io/scandinavian-dynaword-website/', 'docs': '/docs', 'health': '/api/health'}
+    return {'service': 'Scandinavian Dynaword API', 'website': 'https://v4ldesalnikov.github.io/scandinavian-dynaword-website/', 'docs': '/docs', 'health': '/api/health'}
 
 
 @contextmanager
@@ -63,9 +65,16 @@ def parse_filters(raw):
     if not isinstance(f, dict):
         raise HTTPException(400, 'Filters must be an object')
     clauses, values = [], []
-    for field in ['source', 'domain', 'content_quality', 'pii_presence']:
+    for field in ['source', 'domain', *FIELDS]:
         value = f.get(field)
         if value:
+            if field == 'content_type':
+                if value == '__missing__':
+                    clauses.append('(content_type IS NULL OR len(content_type)=0)')
+                else:
+                    clauses.append('list_contains(content_type, ?)')
+                    values.append(str(value))
+                continue
             if value == '__missing__':
                 clauses.append(f'"{field}" IS NULL')
             else:
@@ -142,6 +151,17 @@ def stats(filters: str = '{}', annotation: str = 'content_quality'):
     if annotation not in FIELDS:
         raise HTTPException(400, 'Unknown annotation field')
     return stats_cached(filters, annotation)
+
+
+@app.get('/api/annotation-values')
+@lru_cache(maxsize=1)
+def annotation_values():
+    with database() as c:
+        result = {}
+        for field in FIELDS:
+            expression = 'unnest(content_type)' if field == 'content_type' else f'"{field}"'
+            result[field] = [row[0] for row in c.execute(f'SELECT DISTINCT value FROM (SELECT {expression} AS value FROM records) WHERE value IS NOT NULL ORDER BY value').fetchall()]
+        return result
 
 
 @app.get('/api/topics')

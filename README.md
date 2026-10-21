@@ -2,13 +2,14 @@
 
 [Public website](https://v4ldesalnikov.github.io/scandinavian-dynaword-website/) · [MVP plan](MVP.md) · [Wishlist](WISHLIST.md)
 
-An interactive overview of Danish, Norwegian, Swedish, Icelandic and Faroese Dynaword, with full-corpus browsing and search for the Danish snapshot. GitHub Pages serves the static frontend; an API-only Hugging Face Space serves Danish records. The overview and comparison pages need no backend connection.
+An interactive overview of Danish, Norwegian, Swedish, Icelandic and Faroese Dynaword, with full-corpus browsing for all five languages and text/semantic search for the Danish snapshot. GitHub Pages serves the static frontend; an API-only Hugging Face Space serves Danish search and Nordic record exploration. The overview and comparison pages need no backend connection.
 
 ## Current release
 
 - A project introduction based on the Scandinavian Dynaword poster and [original paper](https://arxiv.org/abs/2508.02271).
 - Interactive domain comparisons across all five languages: select languages and domains, switch records/tokens and counts/percentage shares, inspect exact values, and export matching source counts.
-- An interactive quality-annotation chart, using published machine-label counts. Select a quality level to compare it across languages; domain selections also update the quality chart. Missing published quality counts remain explicitly unreported.
+- An interactive annotation chart with nine fields: quality, PII, integrity, content ratio/length, information density, educational value, reasoning and safety. Domain and category selections update the comparison.
+- A language selector opens complete Norwegian, Swedish, Icelandic and Faroese record browsing through revision-checked Hub row access. Domain/source slicing, arbitrary row jumps and original-text reading cover every published record. Norwegian, Icelandic and Faroese use complete local annotation/length indexes; Swedish has no published annotation layer. New-language text and semantic indexes are deferred.
 - Full Danish record browsing, original-text previews and incremental reading, with intersecting source, domain, quality, PII, annotation and token-length filters.
 - Text and semantic search beside the row browser. Selection statistics have a separate view with clickable distributions and histogram range selection.
 - Browser-local review tags and JSON export. Tags are never uploaded and do not change the corpus.
@@ -51,7 +52,7 @@ Open **http://localhost:5173**. The API is on port 8000. For an existing prepare
 
 Preparation resumes completed sources and checks annotation joins against complete source counts. Generated data lives in ignored `.cache/`. To change the search snapshot, move the old cache aside and rebuild metadata, texts and vectors together with the new revision. Do not mix record identities from different builds.
 
-`build_corpus_catalog.py` downloads only public README and descriptive-statistics files at pinned revisions. It verifies source and domain sums against each root total, validates quality counts, and saves `web/public/data/corpora.json`. To refresh comparisons, review and update its `SNAPSHOTS` list, regenerate, and commit the catalog. A new catalog does not update the separate Danish search index.
+`build_corpus_catalog.py` downloads only public README and descriptive-statistics files at pinned revisions. It verifies source and domain sums against each root total, validates all nine annotation distributions, and saves `web/public/data/corpora.json`. To refresh comparisons, review and update its `SNAPSHOTS` list, regenerate, and commit the catalog. A new catalog does not update the separate Danish search index.
 
 ## Search and architecture
 
@@ -86,3 +87,9 @@ GitHub Actions builds and deploys `web/dist/`. Set repository variable `VITE_API
 See [Hugging Face deployment instructions](deploy/huggingface/README.md) or the [alternative Docker/Caddy setup](deploy/README.md). Updating GitHub alone does not update the API Space.
 
 Website source code is [MIT licensed](LICENSE). The website licence does not relicense corpus texts, annotations, model weights or derived vectors; see [NOTICE.md](NOTICE.md) and individual source cards. Danish fastText vectors are attributed to Grave, Bojanowski, Gupta, Joulin and Mikolov (2018), *Learning Word Vectors for 157 Languages*, and distributed under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/). Retain applicable attribution and share-alike terms when distributing derived vectors.
+
+## Additional-language record indexes
+
+Install `server/requirements-dev.txt` for the index builder. `python3 scripts/build_annotation_indexes.py` projects IDs, token counts and nine annotation fields from the pinned source Parquet files, joins by document ID and saves compact arrays in `.cache/corpus-annotations`. Each language has a source-offset manifest, dictionary-coded labels and document identity checksums. Filtering counts every matching record before pagination; it never filters only a sample. Original texts are fetched on demand from each source configuration and verified against the index identity.
+
+`deploy/huggingface/annotations-source.json` pins these artifacts separately from the Danish search snapshot. The Docker build verifies checksums and adds the compact indexes after the existing base data layer. Refresh both the catalog and indexes together when updating a release. Upstream text requests reject revision changes and incomplete responses. Danish remains the only language with local full-text and semantic search; the upstream hosted search was too unreliable to expose as a working feature.

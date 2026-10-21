@@ -5,8 +5,8 @@ This plan reflects the latest feedback. Topics are explicitly deferred, replacin
 ## Experience
 
 1. **Overview:** explain continuous corpus development, provenance, licensing and the shared Scandinavian methodology. Show headline totals and the five release versions, with dataset-card links beside each language.
-2. **Compare corpora:** choose languages and a domain. Interactive bars compare domain composition by tokens or records, on a common absolute scale or as shares of each corpus. A second graph compares machine-predicted quality levels, including unreported labels. Tap a segment/legend to focus the comparison. Keep exact domain values expandable and source counts exportable.
-3. **Explore records:** browse and search the complete Danish snapshot. Search sits beside the row browser. Source, domain, token-length and automated-annotation filters intersect. Read originals, inspect annotations, tag records locally for review and export those tags.
+2. **Compare corpora:** choose languages and a domain. Interactive bars compare domain composition by tokens or records, on a common absolute scale or as shares of each corpus. A second graph switches between nine annotation fields, including quality, privacy, integrity, educational value and safety. Tap a segment/legend to focus the comparison. Keep exact domain values expandable and source counts exportable.
+3. **Explore records:** browse complete releases in all five languages; text and semantic search cover the Danish snapshot. Search sits beside the row browser. Source, domain, token-length and automated-annotation filters intersect. Read originals, inspect annotations, tag records locally for review and export those tags.
 4. **Selection statistics:** a separate Danish explorer view for linked charts, histogram range selection and exact filtered totals. Do not repeat the row browser or overview on every page.
 
 The design uses the supplied Dynaword icon, white/charcoal surfaces and red accents. Use the name “Dynaword”, release identifiers instead of visible commit hashes, concise labels and contextual information controls. No generic trust/shield badge or “100% annotated” headline implying human validation.
@@ -14,7 +14,7 @@ The design uses the supplied Dynaword icon, white/charcoal surfaces and red acce
 ## Coverage and meaning
 
 - Compare all 555 published sources across Danish v1.2.27, Norwegian v0.0.22, Swedish v0.0.17, Icelandic v0.0.15 and Faroese v0.0.8.
-- Full record browsing/search remains Danish v1.2.23: 7,399,685 records. Display this difference from the latest comparison release explicitly.
+- Danish browsing/search remains v1.2.23: 7,399,685 records. Other language explorers use the comparison releases, with complete source/domain browsing and annotation/length filtering where annotations are published. Display this difference from the latest comparison release explicitly.
 - Both exact text search and experimental semantic search respect metadata filters before retrieval. Semantic coverage includes every usable document vector; zero-vector records remain accessible by browsing/text search.
 - Record boundaries differ across languages. Tokens use the common Llama 3 tokenizer.
 - Quality labels are automated predictions, not human annotation or a validated cross-language benchmark. Missing published counts are unreported, not negative findings or poor quality. Percentages include all records in the selected language/domain.
@@ -43,7 +43,7 @@ The design uses the supplied Dynaword icon, white/charcoal surfaces and red acce
 ## Later
 
 - Topic discovery and maps, after choosing and evaluating a topic model with domain expertise.
-- Additional languages in the full-text/vector search service; current comparisons do not imply their texts are indexed.
+- Additional languages in the full-text/vector search service; browsing all records does not imply text/vector search indexes are built.
 - Contextual passage embeddings and matching-excerpt previews.
 - More annotation comparisons, saved workspaces and shared review workflows.
 - Analyst agent, natural-language visualisations, tour and appearance controls.

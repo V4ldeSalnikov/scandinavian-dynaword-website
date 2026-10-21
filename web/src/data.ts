@@ -6,6 +6,14 @@ export type Filters = {
   pii_presence?: string;
   min_tokens?: number;
   max_tokens?: number;
+  content_type?: string;
+  content_integrity?: string;
+  content_ratio?: string;
+  content_length?: string;
+  information_density?: string;
+  educational_value?: string;
+  reasoning_indicators?: string;
+  content_safety?: string;
   annotation_key?: string;
   annotation_value?: string;
 };
@@ -148,6 +156,8 @@ export const ANNOTATIONS: Record<string, string> = {
   content_quality: "Content quality",
   pii_presence: "PII detection",
   content_type: "Content type",
+  content_ratio: "Content ratio",
+  content_length: "Content length",
   information_density: "Information density",
   educational_value: "Educational value",
   content_safety: "Content safety",
@@ -170,6 +180,6 @@ export function filterLabels(filters: Filters, sources: Source[]) {
               ? `≤ ${format(Number(value))} tokens`
               : key === "annotation_value"
                 ? `${ANNOTATIONS[filters.annotation_key || ""]}: ${label(String(value))}`
-                : label(String(value)),
+                : ANNOTATIONS[key] ? `${ANNOTATIONS[key]}: ${label(String(value))}` : label(String(value)),
     }));
 }

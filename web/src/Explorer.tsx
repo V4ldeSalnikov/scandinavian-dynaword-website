@@ -100,6 +100,8 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
     [sourceDetail, setSourceDetail] = useState<Source | null>(null);
   const rowRequest = useRef<AbortController | null>(null),
     previewRequest = useRef<AbortController | null>(null);
+  const [annotationValues,setAnnotationValues] = useState<Record<string,string[]>>({});
+  useEffect(()=>{if(!active||manifest?.status!=="ready")return;const c=new AbortController();api<Record<string,string[]>>("annotation-values",{},c.signal).then(setAnnotationValues).catch(()=>{});return()=>c.abort();},[active,manifest?.status,refresh]);
   const filtersJSON = JSON.stringify(filters);
   useEffect(() => {
     if (!active) return;
@@ -232,14 +234,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
   const chips = filterLabels(filters, manifest?.sources || []);
   const selectAnnotation = useCallback(
     (value: string) => {
-      if (annotation === "content_quality" || annotation === "pii_presence")
-        setFilter(annotation, value);
-      else
-        setFilters((f) => ({
-          ...f,
-          annotation_key: annotation,
-          annotation_value: value,
-        }));
+      setFilter(annotation as keyof Filters, value);
     },
     [annotation, setFilter],
   );
@@ -478,7 +473,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
             <span className="danish-flag" />
             <div>
               <strong>Danish Dynaword</strong>
-              <a href="https://huggingface.co/datasets/danish-foundation-models/danish-dynaword/tree/c2f51be06848df26b5aad71cafeec1bc6064b1cc" target="_blank" rel="noreferrer">Dataset card ↗</a>
+
             </div>
           </div>
           <label className="filter-label" htmlFor="domain">
@@ -542,34 +537,9 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
               ))}
           </div>
           <div className="filter-divider" />
-          <label className="filter-label" htmlFor="quality">
-            CONTENT QUALITY <ContextHelp label="About quality labels">Quality levels are automatic predictions. They can help find documents to review but are not human judgements.</ContextHelp>
-          </label>
-          <select
-            id="quality"
-            value={filters.content_quality || ""}
-            onChange={(e) => setFilter("content_quality", e.target.value)}
-          >
-            <option value="">All quality levels</option>
-            {[...fieldOrder, "__missing__"].map((q) => (
-              <option key={q} value={q}>
-                {label(q)}
-              </option>
-            ))}
-          </select>
-          <label className="filter-label" htmlFor="pii">
-            PII DETECTION <ContextHelp label="About privacy labels">Automatic personal-information flags can be wrong. A record with no flagged PII has not been guaranteed private or anonymised.</ContextHelp>
-          </label>
-          <select
-            id="pii"
-            value={filters.pii_presence || ""}
-            onChange={(e) => setFilter("pii_presence", e.target.value)}
-          >
-            <option value="">All records</option>
-            <option value="contains_pii">PII flagged</option>
-            <option value="no_pii">No PII flagged</option>
-            <option value="__missing__">No machine label</option>
-          </select>
+          <label className="filter-label" htmlFor="annotation-field">ANNOTATIONS</label>
+          <select id="annotation-field" aria-label="Annotation field" value={annotation} onChange={e=>setAnnotation(e.target.value)}>{Object.entries(ANNOTATIONS).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select>
+          <select aria-label="Annotation value" value={String(filters[annotation as keyof Filters]||'')} onChange={e=>setFilter(annotation as keyof Filters,e.target.value)}><option value="">All values</option>{(annotationValues[annotation]||[]).map(v=><option key={v} value={v}>{label(v)}</option>)}<option value="__missing__">No machine label</option></select>
           <div className="filter-label">
             DOCUMENT LENGTH <span>tokens</span>
           </div>
@@ -911,31 +881,8 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                       <div className="annotation-tools">
                         <select
                           aria-label="Filter by chart annotation category"
-                          value={
-                            filters.annotation_key === annotation
-                              ? filters.annotation_value || ""
-                              : annotation === "content_quality"
-                                ? filters.content_quality || ""
-                                : annotation === "pii_presence"
-                                  ? filters.pii_presence || ""
-                                  : ""
-                          }
-                          onChange={(e) => {
-                            if (e.target.value)
-                              selectAnnotation(e.target.value);
-                            else if (
-                              annotation === "content_quality" ||
-                              annotation === "pii_presence"
-                            )
-                              setFilter(annotation, undefined);
-                            else
-                              setFilters((f) => {
-                                const n = { ...f };
-                                delete n.annotation_key;
-                                delete n.annotation_value;
-                                return n;
-                              });
-                          }}
+                          value={String(filters[annotation as keyof Filters]||'')}
+                          onChange={e=>selectAnnotation(e.target.value)}
                         >
                           <option value="">Select a category to filter</option>
                           {annotationData.map((d) => (

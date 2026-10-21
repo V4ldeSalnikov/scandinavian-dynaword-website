@@ -7,6 +7,7 @@ COPY server/requirements.txt /app/server/requirements.txt
 RUN python -m pip install --no-cache-dir -r server/requirements.txt \
     && useradd --create-home --uid 10001 dynaword
 
+COPY --chown=dynaword:dynaword web/public/data/corpora.json /app/corpora.json
 COPY --chown=dynaword:dynaword server /app/server
 RUN mkdir -p /app/.cache/texts && chown -R dynaword:dynaword /app/.cache
 
