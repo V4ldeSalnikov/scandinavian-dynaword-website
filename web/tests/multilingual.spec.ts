@@ -1,5 +1,39 @@
 import {test,expect} from '@playwright/test';
 
+test('completed language indexes enable both searches beside the records and retain filters',async({page})=>{
+  const searches:{q:string|null;mode:string|null;filters:Record<string,unknown>}[]=[];
+  await page.route('**/api/corpora/faroese/**',async route=>{
+    const url=new URL(route.request().url());
+    if(url.pathname.endsWith('/search-status'))return route.fulfill({json:{text:true,semantic:true,status:'ready'}});
+    if(url.pathname.endsWith('/record'))return route.fulfill({json:{text:'Original Faroese record',truncated:false}});
+    if(url.pathname.endsWith('/search'))searches.push({q:url.searchParams.get('q'),mode:url.searchParams.get('mode'),filters:JSON.parse(url.searchParams.get('filters')||'{}')});
+    await route.fulfill({json:{rows:[{id:'fixture-record',record_no:0,source:'wikipedia',domain:'Encyclopedic',token_count:100,preview:'A record about fishing',config:'wikipedia',row_index:0,annotations_available:true,content_quality:'good'}],total:1,has_more:false,next_offset:1}});
+  });
+  await page.goto('./#records?language=faroese');
+  await page.getByLabel('Search the complete corpus').fill('fishing');
+  await page.getByLabel('Search mode',{exact:true}).selectOption('semantic');
+  await page.getByRole('button',{name:'Search',exact:true}).click();
+  await expect(page.locator('.records-panel h2')).toContainText('Top matches');
+  await page.getByLabel('Annotation value',{exact:true}).selectOption('good');
+  await expect.poll(()=>searches.at(-1)).toMatchObject({q:'fishing',mode:'semantic',filters:{annotations:{content_quality:'good'}}});
+  await expect(page.getByLabel('Go to record number')).toHaveCount(0);
+  await page.getByLabel('Search mode',{exact:true}).selectOption('text');
+  await page.getByRole('button',{name:'Search',exact:true}).click();
+  await expect.poll(()=>searches.at(-1)?.mode).toBe('text');
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+  await page.getByRole('button',{name:'Clear search',exact:true}).click();
+  await expect(page.locator('.records-panel h2')).toContainText('Records');
+});
+
+test('incomplete language indexes never offer partial search',async({page})=>{
+  await page.route('**/api/corpora/swedish/search-status',route=>route.fulfill({json:{text:false,semantic:false,status:'building'}}));
+  await page.route('**/api/corpora/swedish/rows?**',route=>route.fulfill({json:{rows:[],total:551087777,has_more:false,next_offset:0}}));
+  await page.goto('./#records?language=swedish');
+  await expect(page.locator('.records-panel h2')).toContainText('551.09M');
+  await expect(page.getByLabel('Search the complete corpus')).toHaveCount(0);
+});
+
 test('all additional languages support full browsing, pagination and original text',async({page})=>{
   test.setTimeout(180000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));

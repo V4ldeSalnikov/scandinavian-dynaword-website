@@ -2,18 +2,18 @@
 
 [Public website](https://v4ldesalnikov.github.io/scandinavian-dynaword-website/) · [MVP plan](MVP.md) · [Wishlist](WISHLIST.md)
 
-An interactive overview of Danish, Norwegian, Swedish, Icelandic and Faroese Dynaword, with full-corpus browsing for all five languages and text/semantic search for the Danish snapshot. GitHub Pages serves the static frontend; an API-only Hugging Face Space serves Danish search and Nordic record exploration. The overview and comparison pages need no backend connection.
+An interactive overview of Danish, Norwegian, Swedish, Icelandic and Faroese Dynaword, with full-corpus browsing for all five languages and keyword/semantic search enabled per completed language index. GitHub Pages serves the static frontend; an API-only Hugging Face Space serves search and Nordic record exploration. The overview and comparison pages need no backend connection.
 
 ## Current release
 
 - A project introduction based on the Scandinavian Dynaword poster and [original paper](https://arxiv.org/abs/2508.02271).
-- Interactive domain comparisons across all five languages: select languages and domains, switch records/tokens and counts/percentage shares, inspect exact values, and export matching source counts.
+- Interactive domain comparisons across all five languages: select languages and domains, switch records/tokens and counts/percentage shares, inspect exact values.
 - An interactive annotation chart with nine fields: quality, PII, integrity, content ratio/length, information density, educational value, reasoning and safety. Domain and category selections update the comparison.
-- A language selector opens complete Norwegian, Swedish, Icelandic and Faroese record browsing through revision-checked Hub row access. Domain/source slicing, arbitrary row jumps and original-text reading cover every published record. Norwegian, Icelandic and Faroese use complete local annotation/length indexes; Swedish has no published annotation layer. New-language text and semantic indexes are deferred.
+- A language selector opens complete Norwegian, Swedish, Icelandic and Faroese record browsing through revision-checked Hub row access. Domain/source slicing, arbitrary row jumps and original-text reading cover every published record. Norwegian, Icelandic and Faroese use complete local annotation/length indexes; Swedish has no published annotation layer. Complete additional-language text and semantic indexes are built by bounded CPU jobs and enabled automatically after validation.
 - Full Danish record browsing, original-text previews and incremental reading, with intersecting source, domain, quality, PII, annotation and token-length filters.
 - Text and semantic search beside the row browser. Selection statistics have a separate view with clickable distributions and histogram range selection.
 - Browser-local review tags and JSON export. Tags are never uploaded and do not change the corpus.
-- Contextual explanations, release versions, source licences, mobile layouts and the supplied red Dynaword logo.
+- Release versions, source licences, mobile layouts and the supplied red Dynaword logo.
 
 **Topics are deferred.** No topic map, topic navigation or topic-model dependency is loaded by the current website. Earlier research scripts and backend sidecars remain available for future work. A tour, appearance controls, analyst agent and contextual passage embeddings are also outside this release.
 
@@ -82,7 +82,7 @@ Tests cover aggregate/filter consistency, missing values, reader pagination, tex
 
 ## Deployment and licensing
 
-GitHub Actions builds and deploys `web/dist/`. Set repository variable `VITE_API_BASE_URL` to the public HTTPS API origin; publication verifies full text/vector coverage and browser CORS. The API and its checksum-verified pinned artifacts run separately in a Hugging Face CPU Basic Docker Space. Sleeping or restarting that service affects record search, while the overview/comparison pages remain available.
+GitHub Actions builds and deploys `web/dist/`. Set repository variable `VITE_API_BASE_URL` to the public HTTPS API origin; publication verifies full text/vector coverage and browser CORS. The API and its checksum-verified pinned artifacts run separately in a Hugging Face CPU Upgrade Docker Space (8 vCPU, 32 GB RAM), with sleep disabled and additional-language indexes mounted from a public bucket. Restarting that service affects record search, while the overview/comparison pages remain available.
 
 See [Hugging Face deployment instructions](deploy/huggingface/README.md) or the [alternative Docker/Caddy setup](deploy/README.md). Updating GitHub alone does not update the API Space.
 
@@ -92,4 +92,19 @@ Website source code is [MIT licensed](LICENSE). The website licence does not rel
 
 Install `server/requirements-dev.txt` for the index builder. `python3 scripts/build_annotation_indexes.py` projects IDs, token counts and nine annotation fields from the pinned source Parquet files, joins by document ID and saves compact arrays in `.cache/corpus-annotations`. Each language has a source-offset manifest, dictionary-coded labels and document identity checksums. Filtering counts every matching record before pagination; it never filters only a sample. Original texts are fetched on demand from each source configuration and verified against the index identity.
 
-`deploy/huggingface/annotations-source.json` pins these artifacts separately from the Danish search snapshot. The Docker build verifies checksums and adds the compact indexes after the existing base data layer. Refresh both the catalog and indexes together when updating a release. Upstream text requests reject revision changes and incomplete responses. Danish remains the only language with local full-text and semantic search; the upstream hosted search was too unreliable to expose as a working feature.
+`deploy/huggingface/annotations-source.json` pins these artifacts separately from the Danish search snapshot. The Docker build verifies checksums and adds the compact indexes after the existing base data layer. Refresh both the catalog and indexes together when updating a release. Upstream text requests reject revision changes and incomplete responses. Completed local text/vector indexes replace upstream browsing and enable search per language. Until then the revision-checked browsing bridge remains available.
+
+
+New-language semantic search uses `minishlab/potion-multilingual-128M` (256
+dimensions, revision pinned in `deploy/huggingface/search-config.json`) through
+Model2Vec 0.10.0. This CPU-efficient static embedding model is distilled from
+BGE-M3; it is not a contextual BGE-M3 encoder. Every record is processed,
+with long texts split and aggregated. Faiss IVF/PQ32 candidate retrieval is
+followed by original-text re-encoding and cosine reranking. Keyword retrieval
+uses Tantivy BM25. Both modes apply source, annotation and length filters
+before candidate selection. Missing usable vectors affect semantic coverage
+only; all records remain browsable and keyword searchable.
+
+See the [bounded build and deployment procedure](deploy/huggingface/README.md)
+for storage mounts, complete-index validation and cost limits. No topic model
+is part of these builds.

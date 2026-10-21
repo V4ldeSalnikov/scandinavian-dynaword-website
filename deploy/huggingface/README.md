@@ -10,13 +10,18 @@ Danish corpus; there is no Space iframe or Gradio frontend in the website.
 
 ## Hardware and storage
 
-Use **CPU Basic**: 2 vCPU, 16 GB RAM, 50 GB ephemeral disk, no hourly compute
-charge. The account already has PRO. This deployment does not request an
-upgraded CPU, GPU, paid bucket or persistent disk. PRO does not prevent CPU
-Basic sleeping after inactivity; the website retries its initial connection
-automatically. Semantic search uses a full-coverage Faiss IVF/SQ8 index with metadata filtering
-before candidate retrieval, followed by original-vector and text reranking.
-Restrictive selections use exact vector retrieval.
+The Space uses **CPU Upgrade**: 8 vCPU, 32 GB RAM and 50 GB ephemeral disk,
+at $0.03/hour (about $22 per month running continuously). Sleep is disabled.
+The approved total budget is $50/month. Index builds use the same CPU job tier
+with explicit timeouts; the first four builds reserve at most $6.60 combined.
+No GPU or separately billed persistent disk is required.
+
+The public bucket `V4ldeLund/scandinavian-dynaword-search` holds complete
+additional-language indexes and build checkpoints, within the account's included
+PRO public storage. It is mounted read-only at `/search-index`. The pinned
+`minishlab/potion-multilingual-128M` model is mounted read-only at `/search-model`.
+The serving API needs no token. Buckets avoid copying these large indexes onto
+the Space's 50 GB local disk; first access can still incur remote reads.
 
 The serving snapshot is approximately 32 GB (decimal), including original
 texts, metadata, full-text/vector indexes and legacy topic artifacts. It is stored
@@ -48,7 +53,7 @@ HF references: [hardware](https://huggingface.co/docs/hub/spaces-gpus),
    repository and its immutable 40-character commit SHA. Partial uploads must
    not become the serving revision.
 5. Run `python3 scripts/stage_hf_space.py`. Upload `.cache/hf-space` to a public
-   Docker Space on CPU Basic. `SPACE.md` becomes its root `README.md`. The
+   Docker Space on CPU Upgrade. `SPACE.md` becomes its root `README.md`. The
    image build downloads and validates all files before starting one Uvicorn
    worker on port 8000. Changes limited to server code reuse the data layer.
 6. Wait for the Space to report Running, then verify:
@@ -68,3 +73,44 @@ token. Rotating a deployment token does not break the site. The public artifact
 card and original source cards document licenses and attribution. Updating the
 GitHub repository alone does not update Space code; repeat staging and uploading
 when changing the backend. Frontend changes deploy through GitHub Actions.
+
+## Build additional-language keyword and semantic indexes
+
+`search-config.json` pins the multilingual model and sets the compute price,
+job timeout and build budget ceilings. The builder reads every original record
+at the revision in `web/public/data/corpora.json`; annotation identities and
+source counts must match. It writes Tantivy BM25, 256-dimensional Model2Vec
+vectors and a disk-backed Faiss IVF/PQ32 index. Retrieval applies metadata
+filters before selecting candidates, then re-encodes original texts to rerank.
+Danish keeps its existing fastText index and serving release.
+
+Use a Python environment with `huggingface_hub==2.2.0` and a saved local login:
+
+```sh
+python scripts/launch_corpus_search.py faroese --timeout-hours 4
+python scripts/launch_corpus_search.py norwegian icelandic swedish
+```
+
+The launcher records job IDs and maximum reserved charges in ignored
+`.cache/corpus-search-jobs.json`, checks current hardware prices and refuses
+duplicate jobs or reservations over $10. Default jobs stop after 72 hours.
+`--retry-failed` resumes committed sources after a failed job, subject to the
+remaining reservation. Keep the ledger when continuing work on another machine.
+
+Each language/revision directory has `progress.json`. A `manifest.json` appears
+only after complete source counts, annotation identities and vector self-retrieval
+validation pass. `/api/corpora/{language}/search-status` controls the website's
+search availability; partial builds never advertise full-corpus search. The
+website checks every 30 seconds, so a completed index needs no frontend rebuild.
+The self-retrieval check validates indexing, not multilingual relevance quality.
+
+Attach these volumes with `HfApi.set_space_volumes`, preserving other mounts:
+
+- Bucket `V4ldeLund/scandinavian-dynaword-search` → `/search-index`, read-only.
+- Model `minishlab/potion-multilingual-128M` at the revision in `search-config.json`
+  → `/search-model`, read-only.
+
+Before releasing a complete index, check keyword/semantic queries, intersected
+annotations, original-text identity and first/warm request latency through the
+public API. Large corpus build duration and live concurrency are measured limits;
+the hardware upgrade alone does not establish a search latency guarantee.

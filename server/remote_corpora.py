@@ -11,7 +11,7 @@ import time
 
 import requests
 from fastapi import APIRouter, HTTPException, Query
-from . import annotation_index
+from . import annotation_index, corpus_search
 
 router = APIRouter(prefix='/api/corpora')
 ROOT = Path(__file__).resolve().parents[1]
@@ -165,6 +165,8 @@ def rows(language: str, filters: str = '{}', offset: int = Query(0, ge=0), limit
     if not sources:
         return {'rows':[], 'has_more':False, 'next_offset':offset, 'total':0}
     allowed = {s['id'] for s in sources}
+    if corpus_search.status(data)['text']:
+        return corpus_search.text_search(data, '', allowed, annotations, bounds, offset, limit)
     restricted = len(sources) != len(data['sources'])
     # Browsing can use row slicing directly, even for corpora larger than the
     # Hub's query index. Domain browsing walks complete source configurations.
@@ -212,11 +214,45 @@ def rows(language: str, filters: str = '{}', offset: int = Query(0, ge=0), limit
     raise HTTPException(503, 'Annotation filters are being prepared for this release. Source and domain browsing are available.')
 
 
+@router.get('/{language}/search-status')
+def search_status(language: str):
+    return corpus_search.status(corpus(language))
+
+
+@router.get('/{language}/search')
+def search(language: str, q: str = Query(..., min_length=2, max_length=1000), mode: str = 'text',
+           filters: str = '{}', offset: int = Query(0, ge=0, le=10_000), limit: int = Query(30, ge=1, le=30)):
+    data = corpus(language)
+    if mode not in {'text', 'semantic'}:
+        raise HTTPException(400, 'Unknown search mode')
+    if not corpus_search.status(data)[mode]:
+        raise HTTPException(503, 'The complete search index is still being prepared for this language.')
+    sources, annotations, bounds = filters_for(data, filters)
+    if not sources:
+        return {'rows': [], 'total': 0, 'has_more': False, 'next_offset': offset}
+    try:
+        implementation = corpus_search.semantic_search if mode == 'semantic' else corpus_search.text_search
+        return implementation(data, q, {s['id'] for s in sources}, annotations, bounds, offset, limit)
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+
+
 @router.get('/{language}/record')
 def record(language: str, config: str = 'default', row_index: int = Query(...,ge=0), id: str = Query(...,max_length=1000)):
     data=corpus(language)
     if config!='default' and config not in {s['id'] for s in data['sources']}:
         raise HTTPException(400,'Unknown source')
+    if corpus_search.status(data)['text']:
+        if config == 'default':
+            entries = sorted(data['sources'], key=lambda s: s['id'])
+            for source in entries:
+                if row_index < source['records']:
+                    config = source['id']; break
+                row_index -= source['records']
+        try:
+            return corpus_search.original(data, config, row_index, id)
+        except ValueError as error:
+            raise HTTPException(409, str(error))
     result=hub(language,'rows',config=config,offset=row_index,length=1)
     if not result['rows'] or result['rows'][0]['row']['id']!=id:
         raise HTTPException(409,'The record identity does not match this release.')

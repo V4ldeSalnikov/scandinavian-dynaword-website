@@ -10,3 +10,9 @@ Danish fastText word vectors and their derived document vectors retain CC BY-SA
 3.0 attribution and share-alike terms; see the root README. The website's published
 comparison figures are derived from the pinned Dynaword dataset metadata, with
 provenance recorded in `web/public/data/corpora.json`.
+
+Additional-language semantic indexes use the MIT-licensed
+[minishlab/potion-multilingual-128M](https://huggingface.co/minishlab/potion-multilingual-128M)
+model through Model2Vec. The pinned model repository retains its license and
+attribution. Original text and annotation licenses remain source-specific; an
+embedding model license does not relicense the corpus.

@@ -1,0 +1,13 @@
+{
+  "bucket": "V4ldeLund/scandinavian-dynaword-search",
+  "model": "minishlab/potion-multilingual-128M",
+  "model_revision": "73908c3438cf03b6a01bcb9611d62b23d0726f08",
+  "model2vec_version": "0.10.0",
+  "languages": ["faroese", "norwegian", "icelandic", "swedish"],
+  "space_hardware": "cpu-upgrade",
+  "monthly_budget_usd": 50,
+  "build_budget_usd": 10,
+  "job_hardware": "cpu-upgrade",
+  "job_timeout_hours": 72,
+  "job_hourly_price_ceiling_usd": 0.03
+}

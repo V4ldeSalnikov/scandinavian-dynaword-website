@@ -7,3 +7,4 @@ pyarrow>=18
 tantivy==0.26.0
 numpy>=1.26,<3
 faiss-cpu==1.13.2
+model2vec==0.10.0
