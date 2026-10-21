@@ -4,9 +4,11 @@ The serving process only opens snapshots with a validated ready manifest. Build
 jobs write a separate progress file, so partial indexes never become searchable.
 """
 from functools import lru_cache
+import hashlib
 import json
 import os
 from pathlib import Path
+import tempfile
 import threading
 
 import faiss
@@ -21,6 +23,24 @@ FIELDS = ('content_quality', 'pii_presence', 'content_integrity', 'content_ratio
           'reasoning_indicators', 'content_safety')
 METADATA_DTYPE = np.dtype([('tokens', '<u4')] + [(field, 'u1') for field in FIELDS])
 SEARCH_LOCK = threading.Semaphore(2)
+READER_ROOT = tempfile.TemporaryDirectory(prefix='dynaword-search-readers-')
+
+
+def reader_directory(path):
+    """Keep Tantivy's reader locks local, with immutable data on the RO mount."""
+    source = Path(path) / 'fulltext'
+    identity = hashlib.sha256(str(source).encode()).hexdigest()[:24]
+    target = Path(READER_ROOT.name) / identity
+    target.mkdir(exist_ok=True)
+    for entry in source.iterdir():
+        if entry.is_file() and not entry.name.endswith('.lock'):
+            link = target / entry.name
+            try:
+                link.symlink_to(entry.resolve())
+            except FileExistsError:
+                if not link.is_symlink() or link.resolve() != entry.resolve():
+                    raise ValueError('Reader directory contains an unexpected file')
+    return target
 
 
 def schema():
@@ -61,7 +81,7 @@ def status(data):
 def snapshot(path):
     path = Path(path)
     state = json.loads((path / 'manifest.json').read_text())
-    index = tantivy.Index.open(str(path / 'fulltext'))
+    index = tantivy.Index.open(str(reader_directory(path)))
     if index.searcher().num_docs != state['records']:
         raise ValueError('Text index coverage does not match its manifest')
     metadata = np.memmap(path / 'metadata.bin', mode='r', dtype=METADATA_DTYPE)

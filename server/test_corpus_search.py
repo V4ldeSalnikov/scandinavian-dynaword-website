@@ -93,6 +93,17 @@ class CorpusSearchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             search.original(self.data, 'b', 0, 'wrong')
 
+    def test_reader_locks_are_local_and_index_data_stays_on_the_mount(self):
+        source = self.path / 'fulltext'
+        before = {p.name: p.read_bytes() for p in source.iterdir() if p.is_file()}
+        search.text_search(self.data, 'energy', {'a', 'b'}, {}, {})
+        reader = search.reader_directory(self.path)
+        self.assertNotEqual(reader, source)
+        self.assertTrue((reader / 'meta.json').is_symlink())
+        self.assertTrue((reader / '.tantivy-meta.lock').exists())
+        self.assertFalse((reader / '.tantivy-meta.lock').is_symlink())
+        self.assertEqual(before, {p.name: p.read_bytes() for p in source.iterdir() if p.is_file()})
+
     def test_semantic_search_respects_annotation_source_and_length_filters(self):
         with patch.object(search, 'encoder', return_value=FakeModel()):
             result = search.semantic_search(self.data, 'energy', {'a', 'b'}, {'content_quality': 'good'}, {'min_tokens': 20})

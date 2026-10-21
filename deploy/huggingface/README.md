@@ -22,6 +22,8 @@ PRO public storage. It is mounted read-only at `/search-index`. The pinned
 `minishlab/potion-multilingual-128M` model is mounted read-only at `/search-model`.
 The serving API needs no token. Buckets avoid copying these large indexes onto
 the Space's 50 GB local disk; first access can still incur remote reads.
+Tantivy reader locks live in a temporary local directory; index data is accessed
+through symlinks to the read-only mount. No index files are copied or rewritten.
 
 The serving snapshot is approximately 32 GB (decimal), including original
 texts, metadata, full-text/vector indexes and legacy topic artifacts. It is stored
@@ -105,6 +107,8 @@ website checks every 30 seconds, so a completed index needs no frontend rebuild.
 The self-retrieval check validates indexing, not multilingual relevance quality.
 
 Attach these volumes with `HfApi.set_space_volumes`, preserving other mounts:
+Read existing mounts from `HfApi.space_info(...).runtime.volumes`; the narrower
+runtime endpoint may omit them.
 
 - Bucket `V4ldeLund/scandinavian-dynaword-search` → `/search-index`, read-only.
 - Model `minishlab/potion-multilingual-128M` at the revision in `search-config.json`
