@@ -36,14 +36,10 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'ALLOWED_ORIGINS'):
             self.run_check(cors=False)
 
-    def test_partial_search_and_stale_topics_block_publication(self):
+    def test_partial_search_blocks_publication(self):
         bodies = deepcopy(self.responses)
         bodies['manifest']['search']['text_index']['records'] = 3
         with self.assertRaisesRegex(ValueError, 'complete corpus'):
-            self.run_check(bodies)
-        bodies = deepcopy(self.responses)
-        bodies['topics']['revision'] = 'old'
-        with self.assertRaisesRegex(ValueError, 'topic model'):
             self.run_check(bodies)
 
     def test_local_or_credential_bearing_urls_are_not_public_api_origins(self):

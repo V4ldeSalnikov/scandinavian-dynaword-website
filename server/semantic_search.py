@@ -1,4 +1,4 @@
-"""Exact cosine retrieval over the locally prepared document vectors."""
+"""Full-corpus vector retrieval with filtered ANN and exact-search fallback."""
 from functools import lru_cache
 from pathlib import Path
 import json
@@ -6,6 +6,7 @@ import threading
 
 import numpy as np
 from server.embeddings import CACHE, encoder
+from server import ann_search
 
 SEARCH_LOCK = threading.Lock()
 MAX_RESULTS = 300
@@ -16,7 +17,11 @@ RETRIEVAL = {'candidates': CANDIDATES, 'results': MAX_RESULTS, 'method': 'Exact 
 def status():
     path = CACHE/'semantic_manifest.json'
     result = json.loads(path.read_text()) if path.exists() else {'status': 'building', 'records_processed': 0, 'records_with_vectors': 0}
-    return {**result, 'retrieval': RETRIEVAL}
+    ann = ann_search.status(result)
+    retrieval = RETRIEVAL if ann['status'] != 'ready' else {
+        **RETRIEVAL, 'approximate': True, 'indexed_records': ann['records'], 'nprobe': ann_search.NPROBE, 'ann_candidates': 2400,
+        'method': 'Faiss IVF-SQ8 approximate retrieval over the full vector corpus, filtered before selection; original-vector cosine and query-concept reranking.'}
+    return {**result, 'retrieval': retrieval, 'ann_index': ann}
 
 
 @lru_cache(maxsize=50)
@@ -70,7 +75,10 @@ def search_cached(text, filters_json):
             eligible = np.zeros(state['records_processed'], dtype=bool)
             ids = c.execute(f'SELECT record_no FROM records WHERE {where}', params).fetchnumpy()['record_no']
             eligible[ids] = True
-        candidates, compared = rank(query, sources, eligible, limit=CANDIDATES)
+        if state.get('ann_index', {}).get('status') == 'ready' and (eligible is None or np.count_nonzero(eligible) > 100_000):
+            candidates, compared = ann_search.rank(query, sources, eligible, limit=CANDIDATES)
+        else:
+            candidates, compared = rank(query, sources, eligible, limit=CANDIDATES)
         if not candidates:
             return [], compared
         from server.text_search import original_texts

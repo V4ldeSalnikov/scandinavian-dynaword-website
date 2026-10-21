@@ -14,11 +14,12 @@ Use **CPU Basic**: 2 vCPU, 16 GB RAM, 50 GB ephemeral disk, no hourly compute
 charge. The account already has PRO. This deployment does not request an
 upgraded CPU, GPU, paid bucket or persistent disk. PRO does not prevent CPU
 Basic sleeping after inactivity; the website retries its initial connection
-automatically. Full-corpus semantic searches scan every usable document vector
-and are more expensive than text search.
+automatically. Semantic search uses a full-coverage Faiss IVF/SQ8 index with metadata filtering
+before candidate retrieval, followed by original-vector and text reranking.
+Restrictive selections use exact vector retrieval.
 
-The serving snapshot is approximately 30 GB (decimal), including original
-texts, metadata, full-text/vector indexes and topic assignments. It is stored
+The serving snapshot is approximately 32 GB (decimal), including original
+texts, metadata, full-text/vector indexes and legacy topic artifacts. It is stored
 in a public Hub dataset repository. The image build downloads the pinned
 snapshot and verifies every file's SHA-256 and size. Data lives in one image
 layer; waking a container does not rerun the download script. Pulling the
@@ -32,12 +33,12 @@ HF references: [hardware](https://huggingface.co/docs/hub/spaces-gpus),
 ## Reproduce or update
 
 1. Prepare all local indexes using the root README. Keep the dataset revision,
-   metadata database, text index, vectors and topics together.
+   metadata database, text index and vectors together. The current UI does not use topics.
 2. Run `python3 scripts/package_runtime.py`. This stages only runtime files at
    `.cache/hf-runtime`, using hard links and checksums. Do not modify source
    indexes while uploading. Training caches and credentials are excluded.
 3. Upload the generated `.gitattributes` **first**, in a separate commit. The
-   custom Tantivy extensions must use Hub large-file storage even when small;
+   custom Tantivy and `.faiss` extensions must use Hub large-file storage even when small;
    otherwise the Hub may reject them as binary Git content. Then upload the
    directory using `huggingface_hub` `HfApi.upload_folder` or the Hub CLI.
    Authenticate through a local login or
@@ -59,7 +60,7 @@ HF references: [hardware](https://huggingface.co/docs/hub/spaces-gpus),
    ```
 
 7. Set the GitHub repository Actions variable `VITE_API_BASE_URL` to the API
-   origin above and run the Pages workflow. Verify browsing, search, the map
+   origin above and run the Pages workflow. Verify the domain/quality graphs, browsing, search
    and the reader on the public site.
 
 The running service downloads no private resources and needs no Hugging Face

@@ -11,9 +11,9 @@ test("recovers automatically when the backend wakes", async ({ page }) => {
       await route.continue();
     }
   });
-  await page.goto("./");
+  await page.goto("./#records");
   await expect(page.getByRole("heading", { name: "Waiting for the data service" })).toBeVisible();
   awake = true;
-  await expect(page.getByText("Complete Danish corpus", { exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.locator(".record-title").first()).toBeVisible({ timeout: 30000 });
   expect(requests).toBeGreaterThanOrEqual(2);
 });

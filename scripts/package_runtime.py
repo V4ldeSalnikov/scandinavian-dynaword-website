@@ -13,13 +13,15 @@ def digest(path):
 
 
 def check_snapshot(cache, manifest):
-    for name, count_field in [('search_manifest.json', 'records'), ('semantic_manifest.json', 'records_processed'), ('topics_manifest.json', 'records')]:
+    for name, count_field in [('search_manifest.json', 'records'), ('semantic_manifest.json', 'records_processed')]:
         state = json.loads((cache / name).read_text())
         if state.get('status') != 'ready' or state.get('revision') != manifest['revision'] or state.get(count_field) != manifest['records']:
             raise ValueError(f'{name} does not cover the complete, ready corpus snapshot.')
     semantic = json.loads((cache / 'semantic_manifest.json').read_text())
+    if not (cache / 'topics_manifest.json').exists():
+        return
     topics = json.loads((cache / 'topics_manifest.json').read_text())
-    if topics.get('metadata_fingerprint') != semantic.get('metadata_fingerprint') or topics.get('assigned') != semantic.get('records_with_vectors'):
+    if topics.get('status') != 'ready' or topics.get('revision') != manifest['revision'] or topics.get('records') != manifest['records'] or topics.get('metadata_fingerprint') != semantic.get('metadata_fingerprint') or topics.get('assigned') != semantic.get('records_with_vectors'):
         raise ValueError('Topic assignments and document vectors belong to different snapshots.')
 
 
@@ -29,11 +31,22 @@ def package(cache, output):
     if manifest['status'] != 'ready':
         raise ValueError('Finish preparing the complete corpus first.')
     check_snapshot(cache, manifest)
-    paths = [cache / name for name in ['corpus.duckdb', 'manifest.json', 'search_manifest.json', 'semantic_manifest.json', 'topics_manifest.json']]
+    paths = [cache / name for name in ['corpus.duckdb', 'manifest.json', 'search_manifest.json', 'semantic_manifest.json']]
     paths += [p for p in (cache / 'fulltext').iterdir() if p.is_file() and not p.name.endswith('.lock')]
     paths += [p for p in (cache / 'semantic').glob('*.npy') if '.partial' not in p.name]
     paths += list((cache / 'danish-fasttext').iterdir())
-    paths += [cache / 'topics' / name for name in ['assignments.parquet', 'points.parquet']]
+    if (cache / 'topics_manifest.json').exists():
+        paths += [cache / 'topics_manifest.json']
+        paths += [cache / 'topics' / name for name in ['assignments.parquet', 'points.parquet']]
+    if (cache / 'semantic-ann' / 'manifest.json').exists():
+        ann = json.loads((cache / 'semantic-ann' / 'manifest.json').read_text())
+        semantic = json.loads((cache / 'semantic_manifest.json').read_text())
+        if ann.get('status') != 'ready' or ann.get('revision') != manifest['revision'] or ann.get('records') != semantic['records_with_vectors'] or ann.get('metadata_fingerprint') != semantic.get('metadata_fingerprint') or ann.get('matrix_sha256') != semantic['model']['matrix_sha256']:
+            raise ValueError('ANN index does not match the semantic snapshot.')
+        if digest(cache / 'semantic-ann' / 'index.faiss') != ann['sha256']:
+            raise ValueError('ANN index checksum differs from its manifest.')
+        paths += [cache / 'semantic-ann' / name for name in ['manifest.json', 'index.faiss']]
+
     output.mkdir(parents=True, exist_ok=True)
     attributes = Path(__file__).resolve().parents[1] / 'deploy/huggingface/index.gitattributes'
     shutil.copyfile(attributes, output / '.gitattributes')
@@ -57,7 +70,6 @@ pretty_name: Danish Dynaword explorer serving indexes
 tags:
   - dynaword
   - search
-  - topic-modeling
   - derived-data
 viewer: false
 ---
@@ -90,7 +102,8 @@ Derived document vectors, reduced topic assignments and map coordinates were pro
 - `corpus.duckdb`: all document metadata and annotations.
 - `fulltext/`: Tantivy BM25 index with stored original texts.
 - `semantic/`, `danish-fasttext/`: full-corpus search vectors and query vocabulary.
-- `topics/`: assignments for all usable document vectors and a sampled interactive map.
+- `semantic-ann/` (when present): compact approximate candidate index, covering every usable vector.
+- `topics/` (optional legacy artifacts): retained for research; not used in the current website.
 - `*_manifest.json`: coverage and reproducibility information.
 
 Training caches, logs, temporary files and credentials are excluded.

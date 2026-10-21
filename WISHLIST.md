@@ -2,7 +2,7 @@
 
 A living wishlist for exploring the Danish, Norwegian, Swedish, Icelandic, and Faroese Dynaword datasets. This captures preferences and possibilities; it is not a committed implementation plan.
 
-The proposed Danish-only first release is defined in [MVP.md](MVP.md).
+The current five-language comparison and Danish record-explorer release is defined in [MVP.md](MVP.md).
 
 ## Inspiration: Nomic Atlas
 
@@ -97,4 +97,4 @@ Suggested presentation rule: distinguish automated annotations from verified fac
 - [Icelandic Dynaword](https://huggingface.co/datasets/danish-foundation-models/icelandic-dynaword)
 - [Faroese Dynaword](https://huggingface.co/datasets/danish-foundation-models/faroese-dynaword)
 
-Potential topic-analysis library: [Turftopic](https://x-tabdeveloping.github.io/turftopic/).
+Topic discovery is deferred from the current version. Potential future library: [Turftopic](https://x-tabdeveloping.github.io/turftopic/).

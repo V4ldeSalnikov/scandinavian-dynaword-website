@@ -32,13 +32,10 @@ def check_public_api(api_url, pages_origin):
             raise ValueError('Both full-corpus search indexes must be ready before publication.')
         if search['text_index']['records'] != records or search['semantic_index']['records_processed'] != records:
             raise ValueError('The search indexes do not cover the complete corpus.')
-        model = get('topics')
-        if model.get('status') != 'ready' or model.get('revision') != manifest['revision'] or model.get('records') != records:
-            raise ValueError('The topic model is not ready for this complete corpus snapshot.')
         stats = get('stats')
         if stats['totals']['records'] != records or stats['totals']['sources'] != len(manifest['sources']):
             raise ValueError('Public corpus totals do not match the manifest.')
-    print(f"Public API ready: {records:,} records, {len(manifest['sources'])} sources, both search modes, {len(model['topics'])} topics.")
+    print(f"Public API ready: {records:,} records, {len(manifest['sources'])} sources, both search modes.")
 
 
 if __name__ == '__main__':

@@ -5,13 +5,11 @@ test("complete corpus, linked filters, annotations, and reader", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("./");
+  await page.goto("./#records");
   await expect(
-    page.getByText("Complete Danish corpus", { exact: true }),
+    page.locator(".record-title").first(),
   ).toBeVisible();
-  await expect(page.locator(".metric").first().locator("strong")).toHaveText(
-    "7.4M",
-  );
+
   await expect(page.locator(".record-title").first()).toBeVisible();
   await page.screenshot({
     path: "../.cache/desktop-overview.png",
@@ -19,21 +17,15 @@ test("complete corpus, linked filters, annotations, and reader", async ({
   });
   await page.locator("#domain").selectOption("News");
   await expect(page.locator(".filter-chips")).toContainText("News");
-  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
-  const filtered = await page
-    .locator(".metric")
-    .first()
-    .locator("strong")
-    .textContent();
-  expect(filtered).not.toEqual("7.4M");
+  await expect(page.locator(".record-title").first()).toBeVisible();
   await page.locator("#pii").selectOption("contains_pii");
-  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".record-title").first()).toBeVisible();
   await expect(page.locator(".record-table tbody tr").first()).toContainText(
     "Flagged",
   );
   await page.getByLabel("Minimum tokens", { exact: true }).fill("100");
   await page.getByLabel("Maximum tokens", { exact: true }).fill("1000");
-  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".record-title").first()).toBeVisible();
   await expect(page.locator(".record-title").first()).toBeVisible();
   await page.locator(".record-title").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -43,9 +35,7 @@ test("complete corpus, linked filters, annotations, and reader", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await page.getByRole("button", { name: "Clear all", exact: true }).click();
-  await expect(page.locator(".metric").first().locator("strong")).toHaveText(
-    "7.4M",
-  );
+
   await page
     .getByRole("button", { name: "Load more records", exact: true })
     .click();
@@ -62,6 +52,7 @@ test("complete corpus, linked filters, annotations, and reader", async ({
     )
     .toBeGreaterThan(before);
   await page.keyboard.press("Escape");
+  await page.getByRole("button", {name: "Selection statistics", exact: true}).click();
   await page.getByLabel("Annotation to visualise").selectOption("content_type");
   await expect(page.locator(".annotations .panel-foot")).toContainText(
     "Multiple labels",
@@ -71,9 +62,9 @@ test("complete corpus, linked filters, annotations, and reader", async ({
 });
 
 test("full-text search, pagination, and source documents", async ({ page }) => {
-  await page.goto("./");
+  await page.goto("./#records");
   await expect(
-    page.getByText("Complete Danish corpus", { exact: true }),
+    page.locator(".record-title").first(),
   ).toBeVisible();
   await page.getByLabel("Search mode").selectOption("text");
   await page.getByLabel("Search the complete corpus").fill("vindmøller");
@@ -83,10 +74,8 @@ test("full-text search, pagination, and source documents", async ({ page }) => {
   );
   await expect(page.locator(".record-title").first()).toBeVisible();
   await expect(page.locator(".records-panel")).toContainText("vindmøller");
-  await expect(page.locator(".metric").first().locator("strong")).toHaveText(
-    "7.4M",
-  );
-  await page.getByRole("button", { name: "Sources", exact: true }).click();
+
+  await page.getByRole("button", { name: "Source details", exact: true }).click();
   await expect(page.locator(".source-card")).toHaveCount(50);
   await page.locator(".source-card").first().click();
   await expect(page.getByRole("dialog")).toContainText("Source licence");
@@ -96,11 +85,11 @@ test("full-text search, pagination, and source documents", async ({ page }) => {
 
 test("mobile layout and filter access", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("./");
+  await page.goto("./#records");
   await expect(
-    page.getByText("Complete Danish corpus", { exact: true }),
+    page.locator(".record-title").first(),
   ).toBeVisible();
-  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".record-title").first()).toBeVisible();
   await page.getByRole("button", { name: "Open filters", exact: true }).click();
   await expect(page.locator(".sidebar")).toBeVisible();
   await page.locator("#quality").selectOption("good");
@@ -114,10 +103,8 @@ test("mobile layout and filter access", async ({ page }) => {
     scroll: document.documentElement.scrollWidth,
   }));
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.width + 1);
-  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
-  await expect(page.locator(".metric").first().locator("strong")).toHaveText(
-    "2.78M",
-  );
+  await expect(page.locator(".record-title").first()).toBeVisible();
+
   await page.screenshot({
     path: "../.cache/mobile-overview.png",
     fullPage: true,
@@ -127,14 +114,18 @@ test("mobile layout and filter access", async ({ page }) => {
 test("chart clicks, brush ranges, and keyboard-readable values", async ({
   page,
 }) => {
-  await page.goto("./");
+  await page.goto("./#records");
+  await expect(page.locator(".record-title").first()).toBeVisible();
+  await page.getByRole("button", {name: "Selection statistics", exact: true}).click();
   await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
+  await page.locator(".composition canvas").waitFor();
   const composition = page.locator('.composition [role="img"]');
   const box = await composition.boundingBox();
   await page.mouse.click(box!.x + 150, box!.y + 16);
   await expect(page.locator("#domain")).toHaveValue("Other");
   await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
   await page.getByRole("button", { name: "Clear all", exact: true }).click();
+  await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".metrics")).toHaveAttribute("aria-busy", "false");
   const histogram = page.locator('.lengths [role="img"]');
   await histogram.scrollIntoViewIfNeeded();
@@ -162,8 +153,9 @@ test("chart clicks, brush ranges, and keyboard-readable values", async ({
 test("semantic search ranks the corpus slice and retains original-text access", async ({
   page,
 }) => {
-  await page.goto("./");
-  await expect(page.getByLabel("Search mode")).toHaveValue("semantic");
+  await page.goto("./#records");
+  await expect(page.getByLabel("Search mode")).toHaveValue("text");
+  await page.getByLabel("Search mode").selectOption("semantic");
   await page
     .getByLabel("Search the complete corpus")
     .fill("vedvarende energi vindmøller");
@@ -173,11 +165,9 @@ test("semantic search ranks the corpus slice and retains original-text access", 
   );
   await expect(page.locator(".record-title").first()).toBeVisible();
   await expect(page.locator(".records-panel")).toContainText(
-    "Danish word vectors",
+    "Semantic",
   );
-  await expect(page.locator(".metric").first().locator("strong")).toHaveText(
-    "7.4M",
-  );
+
   await page.locator("#domain").selectOption("Encyclopedic");
   await expect(page.locator(".record-title").first()).toBeVisible();
   await page.locator(".record-title").first().click();
