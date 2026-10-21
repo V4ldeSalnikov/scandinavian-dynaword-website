@@ -177,3 +177,18 @@ test("semantic search ranks the corpus slice and retains original-text access", 
   await expect(page.locator(".metadata-list")).toContainText("Encyclopedic");
   await page.screenshot({ path: "../.cache/record-reader.png" });
 });
+
+test('text search respects multiple additional annotation filters',async({page})=>{
+  await page.goto('./#records');
+  await page.getByLabel('Annotation field',{exact:true}).selectOption('content_length');
+  await page.getByLabel('Annotation value',{exact:true}).selectOption('minimal');
+  await page.getByLabel('Annotation field',{exact:true}).selectOption('content_ratio');
+  await page.getByLabel('Annotation value',{exact:true}).selectOption('complete_content');
+  await page.getByLabel('Search the complete corpus').fill('energi');
+  await page.getByRole('button',{name:'Search',exact:true}).click();
+  await expect(page.locator('.records-panel .count-badge')).toContainText('matches');
+  await page.locator('.record-title').first().click();
+  await page.getByRole('button',{name:'Metadata & annotations'}).click();
+  await expect(page.locator('.metadata-list')).toContainText('minimal');
+  await expect(page.locator('.metadata-list')).toContainText('complete_content');
+});

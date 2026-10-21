@@ -1,11 +1,26 @@
 from functools import lru_cache
 from pathlib import Path
 import json
+import threading
 
 import tantivy
 
 CACHE=Path(__file__).resolve().parents[1]/'.cache'
 FIELDS={'source','domain','content_quality','pii_presence','content_type','information_density','educational_value','content_safety','content_integrity','reasoning_indicators'}
+
+EXTRA_FIELDS={'content_ratio','content_length'}
+METADATA_LOCK=threading.Lock()
+
+
+@lru_cache(maxsize=2)
+def metadata_clause(raw):
+    # These two columns were added after the persisted text-index schema.
+    # Intersect document identities inside Tantivy before counts and pagination.
+    from server.app import database, parse_filters
+    where,params=parse_filters(raw)
+    with database() as connection:
+        keys=[row[0] for row in connection.execute("SELECT source || '/' || id FROM records WHERE "+where,params).fetchall()]
+    return tantivy.Query.const_score_query(tantivy.Query.term_set_query(get_index().schema,'key',keys),0.0)
 
 
 def status():
@@ -23,12 +38,18 @@ def query_for(index, text, filters):
     if filters.get('topic_id') not in (None, ''):
         from server.topics import text_clause
         parts.append((tantivy.Occur.Must, text_clause(filters['topic_id'])))
-    for field in ['source','domain','content_quality','pii_presence']:
+    for field in FIELDS:
         if filters.get(field):parts.append((tantivy.Occur.Must,tantivy.Query.term_query(index.schema,field,str(filters[field]))))
     key,value=filters.get('annotation_key'),filters.get('annotation_value')
+    extra={field:filters[field] for field in EXTRA_FIELDS if filters.get(field)}
     if key and value:
-        if key not in FIELDS:raise ValueError('Unknown annotation')
-        parts.append((tantivy.Occur.Must,tantivy.Query.term_query(index.schema,key,str(value))))
+        if key in EXTRA_FIELDS:extra.update(annotation_key=key,annotation_value=value)
+        elif key in FIELDS:parts.append((tantivy.Occur.Must,tantivy.Query.term_query(index.schema,key,str(value))))
+        else:raise ValueError('Unknown annotation')
+    if extra:
+        with METADATA_LOCK:
+            clause=metadata_clause(json.dumps(extra,sort_keys=True))
+        parts.append((tantivy.Occur.Must,clause))
     low,high=filters.get('min_tokens'),filters.get('max_tokens')
     if low not in ('',None) or high not in ('',None):
         parts.append((tantivy.Occur.Must,tantivy.Query.range_query(index.schema,'token_count',tantivy.FieldType.Unsigned,int(low) if low not in ('',None) else None,int(high) if high not in ('',None) else None)))
