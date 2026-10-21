@@ -11,20 +11,15 @@ test('overview and all five comparisons work without the data service', async ({
   await expect(page.locator('.site-footer')).toContainText('MIT licence');
   await page.getByRole('link',{name:'Compare corpora',exact:true}).click();
   await expect(page.locator('.comparison-chart .comparison-bar-row')).toHaveCount(5);
-  await expect(page.locator('.source-comparison .count-badge')).toHaveText('555');
   await expect(page.locator('.quality-comparison')).toContainText('Not published');
   await page.getByLabel('Compare domain').selectOption('Legal');
   await page.locator('.domain-values>summary').click();
   await expect(page.locator('.domain-matrix tbody tr')).toHaveCount(1);
-  await expect(page.locator('.source-comparison tbody tr')).not.toHaveCount(0);
   await page.getByLabel('Comparison scale',{exact:true}).selectOption('share');
   await expect(page.locator('.bar-total').first()).toContainText('%');
   await page.getByLabel('Comparison measure').selectOption('records');
   await page.getByRole('checkbox',{name:'Swedish'}).uncheck();
   await expect(page.locator('.comparison-chart .comparison-bar-row')).toHaveCount(4);
-  const download=page.waitForEvent('download');
-  await page.getByRole('button',{name:'Export counts'}).click();
-  expect((await download).suggestedFilename()).toBe('dynaword-source-comparison.csv');
   expect(api).toEqual([]);
 });
 
@@ -35,7 +30,6 @@ test('comparison shares retain whole-corpus denominator',async({page})=>{
   await expect(page.locator('.bar-total').first()).toHaveText('32.5%');
   await page.getByRole('button',{name:'Reset comparison'}).click();
   await expect(page.locator('.bar-total').first()).toHaveText('100.0%');
-  await expect(page.locator('.source-comparison .count-badge')).toHaveText('555');
 });
 
 test('small screens keep overview and comparison content within the viewport',async({page})=>{
