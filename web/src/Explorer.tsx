@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import type { EChartsOption } from "echarts";
 const Chart = lazy(() => import("./Chart"));
-import ContextHelp from "./ContextHelp";
 import ReviewTags, { ExportReviews } from "./ReviewTags";
 import {
   ANNOTATIONS,
@@ -712,7 +711,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                 </button>
               </form>
               <ExportReviews />
-              <div className="search-explainer"><ContextHelp label="How search works">Text search uses a full-text BM25 index. Semantic search uses Danish word embeddings and an approximate vector index, then reranks matching candidates. It can miss relevant results, particularly for rare words and historical spelling. Both modes respect your filters.</ContextHelp><span>{searchMode === "text" ? "Find words and phrases in the original texts." : "Search by meaning · approximate results · Danish word-vector baseline"}</span></div>
+              <div className="search-explainer"><span>{searchMode === "text" ? "Find words and phrases in the original texts." : "Search by meaning · approximate results · Danish word-vector baseline"}</span></div>
               </>}
               <div className="selection-bar">
                 <span>
@@ -773,7 +772,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                     <section className="panel composition">
                       <div className="panel-heading">
                         <div>
-                          <h2>Corpus composition <ContextHelp label="About domains and sources">Domains describe the source collection. They are separate from a document’s predicted content type. Counts here are computed from every record matching your filters.</ContextHelp></h2>
+                          <h2>Corpus composition</h2>
 
                         </div>
                         <div className="segmented" aria-label="Chart measure">
@@ -846,7 +845,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                     <section className="panel annotations">
                       <div className="panel-heading">
                         <div>
-                          <h2>Annotations <ContextHelp label="About automated labels">These are model-generated assessments, not human annotations. Coverage means a field has a machine label; it does not measure accuracy. A filtered selection may have 100% coverage simply because you selected records with a label.</ContextHelp></h2>
+                          <h2>Annotations</h2>
 
                         </div>
                         <span className="tiny-badge">AUTOMATED</span>
@@ -913,7 +912,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                   >
                     <div className="panel-heading">
                       <div>
-                        <h2>Document lengths <ContextHelp label="About document lengths">Lengths use the corpus’s recorded Llama 3 token counts. Drag to select a range, or enter bounds in the sidebar. Very long documents share wider bins.</ContextHelp></h2>
+                        <h2>Document lengths</h2>
                         <p>Drag across the chart to select a token range</p>
                       </div>
                       <span className="subtle-label">

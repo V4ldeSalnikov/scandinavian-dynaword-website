@@ -38,7 +38,7 @@ test('comparison shares retain whole-corpus denominator',async({page})=>{
   await expect(page.locator('.source-comparison .count-badge')).toHaveText('555');
 });
 
-test('small screens keep content and contextual help within the viewport',async({page})=>{
+test('small screens keep overview and comparison content within the viewport',async({page})=>{
   for(const width of [320,390]) {
     await page.setViewportSize({width,height:844});
     for(const route of ['overview','compare']) {
@@ -47,12 +47,8 @@ test('small screens keep content and contextual help within the viewport',async(
       expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     }
     await page.locator('.domain-values>summary').click();
-    await page.getByRole('button',{name:'About domain counts',exact:true}).click();
-    const box=await page.locator('.context-help-content').boundingBox();
-    expect(box!.x).toBeGreaterThanOrEqual(0);
-    expect(box!.x+box!.width).toBeLessThanOrEqual(width);
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.context-help-content')).not.toBeVisible();
+    await expect(page.locator('.domain-matrix')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }
 });
 
