@@ -1,9 +1,10 @@
 """Read-only corpus API. All SQL filters use parameters and an allowlisted schema."""
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from functools import lru_cache
 from pathlib import Path
 import json
+import logging
 import os
 import threading
 import time
@@ -13,15 +14,40 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 import requests
-from server import text_search, semantic_search, topics
-from server.remote_corpora import router as corpora_router
+from server import text_search, semantic_search, topics, corpus_search, remote_ann
+from server.remote_corpora import router as corpora_router, catalog as corpus_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / '.cache'
 DATASET = 'danish-foundation-models/danish-dynaword'
 FIELDS = ['content_quality', 'pii_presence', 'content_type', 'information_density', 'educational_value', 'content_safety', 'content_integrity', 'reasoning_indicators', 'content_ratio', 'content_length']
 LENGTH_BOUNDS = [0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 4194304, 8388608, 16777216, 33554432]
-app = FastAPI(title='Dynaword explorer', version='0.2.0')
+@asynccontextmanager
+async def lifespan(app):
+    stopped = threading.Event()
+    def warm_search():
+        completed = set()
+        while not stopped.is_set():
+            try:
+                corpus_search.encoder()
+                for data in corpus_catalog().values():
+                    key = (data['id'], data['revision'])
+                    if key not in completed and data['id'] != 'danish' and corpus_search.status(data)['text']:
+                        path = str(corpus_search.directory(data))
+                        corpus_search.snapshot(path)
+                        corpus_search.vector_index(path)
+                        remote_ann.prototype(path)
+                        completed.add(key)
+            except Exception:
+                logging.getLogger(__name__).exception('Search warm-up will retry')
+            stopped.wait(60)
+    if corpus_search.MODEL_ROOT.is_dir():
+        threading.Thread(target=warm_search, name='search-warm-up', daemon=True).start()
+    yield
+    stopped.set()
+
+
+app = FastAPI(title='Dynaword explorer', version='0.2.0', lifespan=lifespan)
 app.include_router(corpora_router)
 app.add_middleware(CORSMiddleware, allow_origins=[x for x in os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173').split(',') if x], allow_methods=['GET'], allow_headers=['*'])
 app.add_middleware(GZipMiddleware, minimum_size=1000)

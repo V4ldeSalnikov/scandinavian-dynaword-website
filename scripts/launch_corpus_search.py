@@ -47,6 +47,7 @@ def main(languages, retry_failed=False, timeout_hours=None):
         raise ValueError('Job reservation would exceed the build budget')
     files = [('scripts/build_corpus_search.py', 'scripts/build_corpus_search.py'),
              ('server/corpus_search.py', 'server/corpus_search.py'),
+             ('server/remote_ann.py', 'server/remote_ann.py'),
              ('web/public/data/corpora.json', 'corpora.json'),
              ('deploy/huggingface/search-config.json', 'search-config.json')]
     fingerprint = hashlib.sha256(b''.join((ROOT / name).read_bytes() for name, _ in files)).hexdigest()[:16]

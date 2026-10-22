@@ -257,7 +257,7 @@ def build(args):
     state['model'] = 'minishlab/potion-multilingual-128M'
     state['dimensions'] = 256
     state['nlist'] = trained.nlist
-    state['vector_format'] = 'IVF/PQ32 with original-text re-encoding for reranking'
+    state['vector_format'] = 'IVF/PQ32; normalized float16 original vectors retained'
     state['sources'].sort(key=lambda s: s['offset'])
     state['completed_at'] = time.time()
     write_json(folder / 'manifest.json', state)

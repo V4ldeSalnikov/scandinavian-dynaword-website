@@ -83,7 +83,10 @@ job timeout and build budget ceilings. The builder reads every original record
 at the revision in `web/public/data/corpora.json`; annotation identities and
 source counts must match. It writes Tantivy BM25, 256-dimensional Model2Vec
 vectors and a disk-backed Faiss IVF/PQ32 index. Retrieval applies metadata
-filters before selecting candidates, then re-encodes original texts to rerank.
+filters before selecting candidates, then uses original float16 vectors to rerank.
+Compressed vector blocks use bounded parallel reads and a 320 MB shared cache;
+Faiss scans those blocks in memory rather than faulting pages from the remote
+mount. Only the current page of original texts is loaded.
 Danish keeps its existing fastText index and serving release.
 
 Use a Python environment with `huggingface_hub==2.2.0` and a saved local login:
@@ -106,7 +109,7 @@ search availability; partial builds never advertise full-corpus search. The
 website checks every 30 seconds, so a completed index needs no frontend rebuild.
 The self-retrieval check validates indexing, not multilingual relevance quality.
 
-Attach these volumes with `HfApi.set_space_volumes`, preserving other mounts:
+Attach these volumes with `HfApi.set_space_volumes`, preserving other mounts.
 Read existing mounts from `HfApi.space_info(...).runtime.volumes`; the narrower
 runtime endpoint may omit them.
 

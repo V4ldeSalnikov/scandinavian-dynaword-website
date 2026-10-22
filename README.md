@@ -100,7 +100,7 @@ dimensions, revision pinned in `deploy/huggingface/search-config.json`) through
 Model2Vec 0.10.0. This CPU-efficient static embedding model is distilled from
 BGE-M3; it is not a contextual BGE-M3 encoder. Every record is processed,
 with long texts split and aggregated. Faiss IVF/PQ32 candidate retrieval is
-followed by original-text re-encoding and cosine reranking. Keyword retrieval
+followed by cosine reranking from the original float16 vectors. Keyword retrieval
 uses Tantivy BM25. Both modes apply source, annotation and length filters
 before candidate selection. Missing usable vectors affect semantic coverage
 only; all records remain browsable and keyword searchable.

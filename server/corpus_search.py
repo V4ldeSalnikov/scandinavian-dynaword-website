@@ -14,6 +14,7 @@ import threading
 import faiss
 import numpy as np
 import tantivy
+from . import remote_ann
 
 ROOT = Path(os.environ.get('DYNAWORD_SEARCH_ROOT', '/search-index'))
 MODEL_ROOT = Path(os.environ.get('DYNAWORD_MODEL_ROOT', '/search-model'))
@@ -93,7 +94,7 @@ def snapshot(path):
 @lru_cache(maxsize=4)
 def vector_index(path):
     index = faiss.read_index(str(Path(path) / 'index.faiss'),
-                             faiss.IO_FLAG_MMAP | faiss.IO_FLAG_READ_ONLY | faiss.IO_FLAG_ONDISK_SAME_DIR)
+                             faiss.IO_FLAG_SKIP_IVF_DATA | faiss.IO_FLAG_READ_ONLY | faiss.IO_FLAG_ONDISK_SAME_DIR)
     state = json.loads((Path(path) / 'manifest.json').read_text())
     if index.ntotal != state['vectors'] or index.d != 256:
         raise ValueError('Vector index coverage does not match its manifest')
@@ -228,38 +229,36 @@ def semantic_results(path, text, sources_json, annotations_json, bounds_json):
         allowed = eligibility(state, metadata, sources, annotations, bounds)
         if allowed is not None and not allowed.any():
             return []
-        bitmap = np.packbits(allowed, bitorder='little') if allowed is not None else None
-        selector = faiss.IDSelectorBitmap(len(bitmap), faiss.swig_ptr(bitmap)) if bitmap is not None else None
         ann = vector_index(path)
         probes = min(64, ann.nlist)
         while True:
-            params = faiss.SearchParametersIVF(nprobe=probes)
-            if selector is not None:
-                params.sel = selector
-            _, ids = ann.search(query[None, :], 300, params=params)
-            identifiers = ids[0][ids[0] >= 0]
+            _, identifiers = remote_ann.candidates(path, ann, query, probes, allowed)
             if len(identifiers) >= 100 or probes >= ann.nlist or allowed is None:
                 break
             probes = min(probes * 4, ann.nlist)
-        searcher = index.searcher()
-        documents = []
-        for identifier in identifiers:
-            result = searcher.search(tantivy.Query.term_query(index.schema, 'record_no', int(identifier)), limit=1, count=False)
-            if result.hits:
-                document = searcher.doc(result.hits[0][1])
-                documents.append(document)
-        if not documents:
+        if not len(identifiers):
             return []
-        vectors = encode_documents(encoder(), [d.to_dict()['text'][0] for d in documents])
+        vectors = remote_ann.original_vectors(path, state, identifiers)
         scores = vectors @ query
-        ranked = sorted(zip(scores, documents), key=lambda pair: -float(pair[0]))
-        return [row_from_doc(document, score) for score, document in ranked]
+        return [{'record_no':int(identifiers[i]), 'score':float(scores[i])}
+                for i in np.argsort(-scores, kind='stable')]
+
+
+@lru_cache(maxsize=1024)
+def ranked_record(path, identifier):
+    _, index, _ = snapshot(path)
+    searcher = index.searcher()
+    result = searcher.search(tantivy.Query.term_query(index.schema, 'record_no', identifier), limit=1, count=False)
+    if not result.hits:
+        raise ValueError('Ranked record is missing from the complete index')
+    return row_from_doc(searcher.doc(result.hits[0][1]))
 
 
 def semantic_search(data, text, sources, annotations, bounds, offset=0, limit=30):
     rows = semantic_results(str(directory(data)), text, json.dumps(sorted(sources)),
                             json.dumps(annotations, sort_keys=True), json.dumps(bounds, sort_keys=True))
-    page = rows[offset:offset + limit]
+    page = [{**ranked_record(str(directory(data)), row['record_no']), 'score':row['score']}
+            for row in rows[offset:offset + limit]]
     return {'rows': page, 'total': len(rows), 'has_more': offset + len(page) < len(rows),
             'next_offset': offset + len(page), 'approximate': True}
 
