@@ -18,9 +18,11 @@ def check_public_api(api_url, pages_origin):
     origin = pages_origin.lower().rstrip('/')
     with requests.Session() as session:
         session.headers['Origin'] = origin
+        session.headers['Cache-Control'] = 'no-cache'
 
         def get(path):
-            response = session.get(url+'/api/'+path, timeout=(15, 90))
+            # A cached successful response must not hide an unavailable new API.
+            response = session.get(url+'/api/'+path, params={'_check':time.time_ns()}, timeout=(15, 90))
             response.raise_for_status()
             if response.headers.get('Access-Control-Allow-Origin') not in {origin, '*'}:
                 raise ValueError('The API must allow the GitHub Pages origin through ALLOWED_ORIGINS.')
