@@ -68,3 +68,20 @@ test('statistics failures have a retry and do not display an old selection',asyn
  await expect(page.locator('.metrics')).toHaveAttribute('aria-busy','false');
  await expect(page.getByRole('alert')).toHaveCount(0);
 });
+
+test('switching views retains loaded pages and distinct rows with repeated document IDs',async({page})=>{
+ await page.route('**/api/corpora/faroese/**',route=>{
+  const url=new URL(route.request().url());
+  if(url.pathname.endsWith('/search-status'))return route.fulfill({json:{text:false,semantic:false}});
+  if(url.pathname.endsWith('/stats'))return route.fulfill({json:{totals:{records:60,tokens:600,sources:1,annotated:0},sources:[],domains:[],annotations:[],histogram:[],annotation_covered:0,annotation:'content_quality'}});
+  const offset=Number(url.searchParams.get('offset')||0);
+  return route.fulfill({json:{rows:Array.from({length:30},(_,i)=>({id:'repeated-id',record_no:offset+i,source:'wikipedia',domain:'Encyclopedic',token_count:10,preview:`Record ${offset+i}`,config:'wikipedia',row_index:offset+i,annotations_available:false})),total:60,has_more:offset===0,next_offset:offset+30}});
+ });
+ await page.goto('./#records?language=faroese');
+ await expect(page.locator('.record-table tbody tr')).toHaveCount(30);
+ await page.getByRole('button',{name:'Load more records',exact:true}).click();
+ await expect(page.locator('.record-table tbody tr')).toHaveCount(60);
+ await page.getByRole('button',{name:'Selection statistics',exact:true}).click();
+ await page.locator('.explorer-tabs').getByRole('button',{name:'Records',exact:true}).click();
+ await expect(page.locator('.record-table tbody tr')).toHaveCount(60);
+});

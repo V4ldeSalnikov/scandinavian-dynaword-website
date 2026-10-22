@@ -11,7 +11,8 @@ An interactive overview of Danish, Norwegian, Swedish, Icelandic and Faroese Dyn
 - An interactive annotation chart with nine fields: quality, PII, integrity, content ratio/length, information density, educational value, reasoning and safety. Domain and category selections update the comparison.
 - A language selector opens complete Norwegian, Swedish, Icelandic and Faroese record browsing through revision-checked Hub row access. Domain/source slicing, arbitrary row jumps and original-text reading cover every published record. Norwegian, Icelandic and Faroese use complete local annotation/length indexes; Swedish has no published annotation layer. Complete additional-language text and semantic indexes are built by bounded CPU jobs and enabled automatically after validation.
 - Full Danish record browsing, original-text previews and incremental reading, with intersecting source, domain, quality, PII, annotation and token-length filters.
-- Text and semantic search beside the row browser. Selection statistics have a separate view with clickable distributions and histogram range selection.
+- All five explorers share flags, record tables, Selection statistics and Source details. Statistics use the active source, domain, annotation and length filters, with clickable distributions and histogram range selection where record metadata is available. Swedish shows published source/domain totals while its record index is being built.
+- Text and semantic search sit beside the row browser. Source cards show release counts, link to original documentation and open the selected source’s records.
 - Browser-local review tags and JSON export. Tags are never uploaded and do not change the corpus.
 - Release versions, source licences, mobile layouts and the supplied red Dynaword logo.
 

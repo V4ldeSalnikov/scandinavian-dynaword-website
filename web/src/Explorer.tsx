@@ -1,3 +1,4 @@
+import {RecordTableHead,RecordMetadataCells} from './explorer/RecordColumns';
 import SelectionStatistics from './explorer/SelectionStatistics';
 import SourceDetails from './explorer/SourceDetails';
 import Modal from './explorer/Modal';
@@ -495,16 +496,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                   ) : (
                     <div className="record-table-scroll">
                       <table className="record-table">
-                        <thead>
-                          <tr>
-                            <th>TEXT / RECORD</th>
-                            <th>SOURCE</th>
-                            <th>TOKENS</th>
-                            <th>QUALITY</th>
-                            <th>PII</th>
-                            <th />
-                          </tr>
-                        </thead>
+                        <RecordTableHead/>
                         <tbody>
                           {rows.map((r, i) => {
                             const preview =
@@ -545,42 +537,7 @@ function Explorer({initialFilters = {}, active = true}: {initialFilters?: Filter
                                   </p>
                                   <span className="record-id">{r.id}</span>
                                 </td>
-                                <td>
-                                  <span
-                                    className="domain-dot"
-                                    style={{ background: COLORS[r.domain] }}
-                                  />
-                                  {manifest.sources.find(
-                                    (s) => s.id === r.source,
-                                  )?.name || r.source}
-                                </td>
-                                <td className="numeric">
-                                  {format(r.token_count)}
-                                </td>
-                                <td>
-                                  <span
-                                    className={`quality-badge ${r.content_quality || "missing"}`}
-                                  >
-                                    {r.content_quality
-                                      ? label(r.content_quality)
-                                      : "No machine label"}
-                                  </span>
-                                </td>
-                                <td>
-                                  <span
-                                    className={`pii-dot ${r.pii_presence || "missing"}`}
-                                  />
-                                  <span className="pii-label">
-                                    {r.pii_presence === "contains_pii"
-                                      ? "Flagged"
-                                      : r.pii_presence === "no_pii"
-                                        ? "Not flagged"
-                                        : "Unknown"}
-                                  </span>
-                                </td>
-                                <td>
-                                  <ArrowUpRight size={15} />
-                                </td>
+                                <RecordMetadataCells row={r} sourceName={manifest.sources.find(s=>s.id===r.source)?.name}/>
                               </tr>
                             );
                           })}
