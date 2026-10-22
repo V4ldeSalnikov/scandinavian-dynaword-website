@@ -11,7 +11,7 @@ import time
 
 import requests
 from fastapi import APIRouter, HTTPException, Query
-from . import annotation_index, corpus_search
+from . import annotation_index, corpus_search, corpus_stats
 
 router = APIRouter(prefix='/api/corpora')
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,7 +83,7 @@ def filters_for(data, raw):
     if not isinstance(annotations, dict) or any(k not in FIELDS for k in annotations):
         raise HTTPException(400, 'Unknown annotation field')
     for key, val in annotations.items():
-        if not isinstance(val, str) or val not in (data.get('annotation_distributions') or {}).get(key, {}):
+        if not isinstance(val, str) or not (key in (data.get('annotation_distributions') or {}) and (val == '__missing__' or val in data['annotation_distributions'][key])):
             raise HTTPException(400, 'Unknown annotation value')
     bounds = {}
     for key in ['min_tokens', 'max_tokens']:
@@ -212,6 +212,20 @@ def rows(language: str, filters: str = '{}', offset: int = Query(0, ge=0), limit
         output = [by_position[position] for position in positions]
         return {'rows':output, 'has_more':offset+len(output)<total, 'next_offset':offset+len(output), 'total':total}
     raise HTTPException(503, 'Annotation filters are being prepared for this release. Source and domain browsing are available.')
+
+
+@router.get('/{language}/stats')
+def stats(language: str, filters: str = '{}', annotation: str = 'content_quality'):
+    data = corpus(language)
+    if annotation not in FIELDS:
+        raise HTTPException(400, 'Unknown annotation field')
+    sources, annotations, bounds = filters_for(data, filters)
+    try:
+        return corpus_stats.cached(language, data['revision'], json.dumps(sorted(s['id'] for s in sources)),
+                                   json.dumps(annotations, sort_keys=True), json.dumps(bounds, sort_keys=True),
+                                   annotation, corpus_search.status(data)['text'])
+    except ValueError as error:
+        raise HTTPException(503, str(error))
 
 
 @router.get('/{language}/search-status')

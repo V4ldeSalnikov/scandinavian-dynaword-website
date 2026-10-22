@@ -43,6 +43,9 @@ def check_public_api(api_url, pages_origin):
         catalog=json.loads((Path(__file__).resolve().parents[1]/'web/public/data/corpora.json').read_text())
         for corpus in catalog['datasets']:
             if corpus['id']=='danish':continue
+            selection=get('corpora/'+corpus['id']+'/stats')
+            if selection['totals']['records']!=corpus['records'] or selection['totals']['tokens']!=corpus['tokens']:
+                raise ValueError('The '+corpus['id']+' selection statistics do not cover the complete release.')
             path='corpora/'+corpus['id']+'/rows?'
             page=get(path+urlencode({'limit':1}))
             if page.get('total')!=corpus['records'] or len(page.get('rows',[]))!=1:

@@ -45,7 +45,7 @@ def select(index, allowed, annotations, bounds, offset, limit):
             block = records[begin:min(begin + 250_000, stop)]
             mask = np.ones(len(block), dtype=bool)
             for field, value in annotations.items():
-                mask &= block[field] == entry['labels'][field][value]
+                mask &= block[field] == entry['labels'][field].get(value, 0)
             if 'min_tokens' in bounds:
                 mask &= block['tokens'] >= bounds['min_tokens']
             if 'max_tokens' in bounds:

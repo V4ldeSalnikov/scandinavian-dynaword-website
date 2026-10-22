@@ -58,6 +58,8 @@ export type Group = {
   domain?: string;
 };
 export type Stats = {
+  annotations_available?: boolean;
+  histogram_available?: boolean;
   totals: {
     records: number;
     tokens: number;

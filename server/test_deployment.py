@@ -22,6 +22,7 @@ class DeploymentTests(unittest.TestCase):
         catalog=json.loads((Path(__file__).resolve().parents[1]/'web/public/data/corpora.json').read_text())
         for corpus in catalog['datasets']:
             if corpus['id']=='danish':continue
+            self.responses['corpora/'+corpus['id']+'/stats']={'totals':{'records':corpus['records'],'tokens':corpus['tokens']}}
             path='corpora/'+corpus['id']+'/rows?'
             self.responses[path+urlencode({'limit':1})]={'total':corpus['records'],'rows':[{'id':'fixture'}]}
             if corpus['annotation_distributions']:
@@ -57,6 +58,11 @@ class DeploymentTests(unittest.TestCase):
         bodies=deepcopy(self.responses)
         bodies['corpora/swedish/rows?limit=1']['total']=1
         with self.assertRaisesRegex(ValueError,'complete release'):self.run_check(bodies)
+
+    def test_incomplete_statistics_blocks_publication(self):
+        bodies=deepcopy(self.responses)
+        bodies['corpora/faroese/stats']['totals']['tokens']=0
+        with self.assertRaisesRegex(ValueError,'selection statistics'):self.run_check(bodies)
 
     def test_local_or_credential_bearing_urls_are_not_public_api_origins(self):
         for url in ['', 'http://localhost:8000', 'https://localhost', 'https://api.example.org/api', 'https://user:password@api.example.org']:

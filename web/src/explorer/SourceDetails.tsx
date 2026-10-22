@@ -1,0 +1,10 @@
+import {useState} from 'react';
+import {ArrowRight,ArrowUpRight,BookOpen,ExternalLink} from 'lucide-react';
+import {COLORS,compact,format} from '../data';
+import Modal from './Modal';
+type Detail={id:string;name:string;domain:string;records:number;tokens:number;url:string;description?:string;license?:string};
+export default function SourceDetails({sources,domain,selectedSource,query='',onExplore}:{sources:Detail[];domain?:string;selectedSource?:string;query?:string;onExplore:(id:string)=>void}) {
+ const [detail,setDetail]=useState<Detail|null>(null);
+ const visible=sources.filter(s=>(!domain||s.domain===domain)&&(!selectedSource||s.id===selectedSource)&&`${s.name} ${s.id}`.toLowerCase().includes(query.toLowerCase()));
+ return <><section className="source-cards" aria-label="Source details">{visible.map(s=><button className="source-card" key={s.id} onClick={()=>setDetail(s)}><span className="source-card-icon" style={{color:COLORS[s.domain]}}><BookOpen size={20}/></span><span className="source-card-domain">{s.domain}</span><h3>{s.name.replaceAll('_',' ')}</h3>{s.description&&<p>{s.description}</p>}<div><strong>{compact(s.records)} <span>records</span></strong><strong>{compact(s.tokens)} <span>tokens</span></strong><ArrowUpRight size={17}/></div></button>)}</section>{!visible.length&&<p className="comparison-empty">No matching sources.</p>}{detail&&<Modal title={detail.name.replaceAll('_',' ')} onClose={()=>setDetail(null)}><span className="domain-tag" style={{color:COLORS[detail.domain]}}>{detail.domain}</span>{detail.description&&<p>{detail.description}</p>}<div className="source-detail-stats"><div><strong>{format(detail.records)}</strong><span>records</span></div><div><strong>{compact(detail.tokens)}</strong><span>tokens</span></div></div>{detail.license&&<><h3>Source licence</h3><p>{detail.license}</p></>}<a className="text-link" href={detail.url} target="_blank" rel="noreferrer">Read source documentation <ExternalLink size={13}/></a><button className="button" onClick={()=>{onExplore(detail.id);setDetail(null);}}>Explore this source <ArrowRight size={15}/></button></Modal>}</>;
+}

@@ -208,7 +208,7 @@ def eligibility(state, metadata, sources, annotations, bounds):
             block = metadata[start:stop]
             selected = np.ones(stop - start, dtype=bool)
             for field, value in annotations.items():
-                selected &= block[field] == state['labels'][field][value]
+                selected &= block[field] == state['labels'][field].get(value, 0)
             if 'min_tokens' in bounds:
                 selected &= block['tokens'] >= bounds['min_tokens']
             if 'max_tokens' in bounds:
