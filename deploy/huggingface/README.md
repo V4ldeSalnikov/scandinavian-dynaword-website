@@ -86,7 +86,9 @@ vectors and a disk-backed Faiss IVF/PQ32 index. Retrieval applies metadata
 filters before selecting candidates, then uses original float16 vectors to rerank.
 Compressed vector blocks use bounded parallel reads and a 320 MB shared cache;
 Faiss scans those blocks in memory rather than faulting pages from the remote
-mount. Only the current page of original texts is loaded.
+mount. A separate 5 GB RAM cache keeps smaller complete index/vector files
+resident. A background warm-up loads completed indexes and the query model;
+only the current page of original texts is fetched for each search.
 Danish keeps its existing fastText index and serving release.
 
 Use a Python environment with `huggingface_hub==2.2.0` and a saved local login:

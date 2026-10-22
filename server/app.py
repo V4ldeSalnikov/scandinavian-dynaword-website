@@ -34,9 +34,10 @@ async def lifespan(app):
                     key = (data['id'], data['revision'])
                     if key not in completed and data['id'] != 'danish' and corpus_search.status(data)['text']:
                         path = str(corpus_search.directory(data))
-                        corpus_search.snapshot(path)
+                        state, _, _ = corpus_search.snapshot(path)
                         corpus_search.vector_index(path)
                         remote_ann.prototype(path)
+                        remote_ann.warm(path, state)
                         completed.add(key)
             except Exception:
                 logging.getLogger(__name__).exception('Search warm-up will retry')

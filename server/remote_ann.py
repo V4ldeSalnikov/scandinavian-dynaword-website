@@ -19,6 +19,55 @@ CACHE_LOCK = threading.Lock()
 CACHE_BYTES = 0
 CACHE_LIMIT = 320 * 1024**2
 BLOCK_RECORDS = 65_536
+RESIDENT = OrderedDict()
+RESIDENT_BYTES = 0
+RESIDENT_LIMIT = 5 * 1024**3
+RESIDENT_LOCK = threading.Lock()
+
+
+def resident_value(key, size, loader):
+    global RESIDENT_BYTES
+    with RESIDENT_LOCK:
+        if key in RESIDENT:
+            RESIDENT.move_to_end(key)
+            return RESIDENT[key][0]
+    value = loader()
+    with RESIDENT_LOCK:
+        if key in RESIDENT:
+            return RESIDENT[key][0]
+        while RESIDENT and RESIDENT_BYTES + size > RESIDENT_LIMIT:
+            _, (_, old_size) = RESIDENT.popitem(last=False)
+            RESIDENT_BYTES -= old_size
+        RESIDENT[key] = (value, size); RESIDENT_BYTES += size
+    return value
+
+
+def resident_index(filename):
+    size = Path(filename).stat().st_size
+    if size > 2 * 1024**3:
+        return None
+    return resident_value(('index', filename), size, lambda: Path(filename).read_bytes())
+
+
+def resident_vectors(path, state):
+    size = state['records'] * 512
+    if size > 3 * 1024**3:
+        return None
+    def load():
+        matrix = np.empty((state['records'], 256), dtype='<f2')
+        for source in state['sources']:
+            start, count = source['offset'], source['records']
+            part = np.fromfile(Path(path) / 'vectors' / (source['id'] + '.f16'), dtype='<f2')
+            if part.size != count * 256:
+                raise ValueError('Original vector coverage differs')
+            matrix[start:start + count] = part.reshape(count, 256)
+        return matrix
+    return resident_value(('vectors', path), size, load)
+
+
+def warm(path, state):
+    resident_index(str(Path(path) / 'index.ivfdata'))
+    resident_vectors(path, state)
 
 
 def read_vector_block(task):
@@ -45,6 +94,11 @@ def read_vector_block(task):
 
 
 def original_vectors(path, state, identifiers):
+    resident = resident_vectors(path, state)
+    if resident is not None:
+        result = np.asarray(resident[identifiers], dtype=np.float32)
+        faiss.normalize_L2(result)
+        return result
     offsets = np.asarray([s['offset'] for s in state['sources']], dtype=np.int64)
     groups = {}
     for output_row, identifier in enumerate(identifiers):
@@ -92,9 +146,16 @@ def read_block(task):
                 raise ValueError('Compressed vector block is incomplete')
             chunks.append(chunk); remaining -= len(chunk)
         return b''.join(chunks)
-    with open(filename, 'rb', buffering=0) as handle:
-        codes = read_exact(handle, offset + start * code_size, count * code_size)
-        ids = read_exact(handle, offset + capacity * code_size + start * 8, count * 8)
+    resident = resident_index(filename)
+    if resident is not None:
+        first_code = offset + start * code_size
+        first_id = offset + capacity * code_size + start * 8
+        codes = resident[first_code:first_code + count * code_size]
+        ids = resident[first_id:first_id + count * 8]
+    else:
+        with open(filename, 'rb', buffering=0) as handle:
+            codes = read_exact(handle, offset + start * code_size, count * code_size)
+            ids = read_exact(handle, offset + capacity * code_size + start * 8, count * 8)
     value = (codes, ids)
     size = len(codes) + len(ids)
     with CACHE_LOCK:
