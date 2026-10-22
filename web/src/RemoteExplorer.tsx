@@ -53,8 +53,8 @@ export default function RemoteExplorer({corpus}:{corpus:Corpus}) {
   const sources=corpus.sources.filter(s=>(!domain||s.domain===domain)&&s.id.toLowerCase().includes(sourceQuery.toLowerCase()));
   const selectedSources=corpus.sources.filter(s=>!domain||s.domain===domain);
   const selectedTotal=selectedSources.reduce((n,s)=>n+s.records,0);
-  const hasFilters=source||domain||min||max||Object.keys(annotations).length;
-  const displayedTitle=(row:Row)=>String(row.one_sentence_description||row.preview||row.id).split('\n').find(s=>s.trim())?.slice(0,130)||row.id;
+  const hasFilters=Boolean(source||domain||min||max||Object.keys(annotations).length);
+  const displayedTitle=(row:Row)=>String(row.preview||row.one_sentence_description||row.id).split('\n').find(s=>s.trim())?.slice(0,130)||row.id;
   function clear(){setSource('');setDomain('');setAnnotations({});setMin('');setMax('');setOffset(0);}
   function annotation(value:string){setAnnotations(old=>{const next={...old};if(value)next[field]=value;else delete next[field];return next;});}
   const chips=Object.entries(annotations);
